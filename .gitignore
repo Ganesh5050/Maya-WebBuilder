@@ -1,0 +1,14 @@
+dist/
+node_modules/
+.wrangler/
+.dev.vars
+worker-configuration.d.ts
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# API Keys Backup - NEVER PUSH TO GITHUB
+API_KEYS_BACKUP.txt
