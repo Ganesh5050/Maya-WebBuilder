@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Editor from '@monaco-editor/react';
-import { X, Save, RotateCcw, Search, Settings } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import Editor, { useMonaco } from '@monaco-editor/react';
+import { X, Save } from 'lucide-react';
 import { getFileExplorerService } from '../../services/fileExplorerService';
 
 interface EditorTab {
@@ -25,6 +25,7 @@ export function CodeEditor({ selectedFile, onFileChange, className = '' }: CodeE
   const [autoSave, setAutoSave] = useState(true);
   
   const editorRef = useRef<any>(null);
+  const monaco = useMonaco();
   const fileExplorerService = getFileExplorerService();
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -145,17 +146,19 @@ export function CodeEditor({ selectedFile, onFileChange, className = '' }: CodeE
   const handleEditorMount = useCallback((editor: any) => {
     editorRef.current = editor;
 
-    // Add keyboard shortcuts
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-      if (activeTab) {
-        saveFile(activeTab);
-      }
-    });
+    // Add keyboard shortcuts only if monaco is available
+    if (monaco) {
+      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+        if (activeTab) {
+          saveFile(activeTab);
+        }
+      });
 
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyS, () => {
-      saveAllFiles();
-    });
-  }, [activeTab, saveFile, saveAllFiles]);
+      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyS, () => {
+        saveAllFiles();
+      });
+    }
+  }, [activeTab, saveFile, saveAllFiles, monaco]);
 
   const activeTabData = tabs.find(tab => tab.path === activeTab);
 

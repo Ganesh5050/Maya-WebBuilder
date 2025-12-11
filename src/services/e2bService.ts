@@ -42,7 +42,7 @@ export class E2BService {
       console.log('🚀 Creating E2B sandbox...');
       this.sandbox = await Sandbox.create({
         apiKey: this.apiKey,
-        timeout: 60000
+        timeoutMs: 60000
       });
 
       console.log('✅ Sandbox created:', this.sandbox.sandboxId);

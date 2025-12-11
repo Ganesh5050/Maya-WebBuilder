@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertCircle, Loader, RefreshCw } from 'lucide-react';
 import { useE2B } from '../hooks/useE2B';
 

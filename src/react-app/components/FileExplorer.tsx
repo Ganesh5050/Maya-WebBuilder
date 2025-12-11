@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   ChevronRight, 
   ChevronDown, 
   File, 
-  Folder, 
-  FolderOpen,
+  Folder,
   Plus,
-  MoreHorizontal,
   Edit3,
   Trash2,
   Copy
