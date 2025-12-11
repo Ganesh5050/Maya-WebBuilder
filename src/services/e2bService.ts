@@ -163,9 +163,8 @@ export class E2BService {
       console.log('🚀 Starting dev server...');
 
       // Start dev server in background
-      let devProcess;
       try {
-        devProcess = await this.sandbox.commands.run('npm run dev', {
+        await this.sandbox.commands.run('npm run dev', {
           background: true,
           timeoutMs: 60000
         });
@@ -173,7 +172,7 @@ export class E2BService {
       } catch (error) {
         console.log('⚠️ npm run dev failed, trying direct vite command...');
         try {
-          devProcess = await this.sandbox.commands.run('npx vite --host 0.0.0.0 --port 5173', {
+          await this.sandbox.commands.run('npx vite --host 0.0.0.0 --port 5173', {
             background: true,
             timeoutMs: 60000
           });

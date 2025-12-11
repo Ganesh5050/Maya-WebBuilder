@@ -20,7 +20,6 @@ export function useE2B(projectId: string, files: ProjectFile[]): UseE2BReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [status, setStatus] = useState('Initializing...');
-  const [retryCount, setRetryCount] = useState(0);
 
   const initializeSandbox = useCallback(async () => {
     try {

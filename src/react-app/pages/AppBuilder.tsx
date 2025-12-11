@@ -43,7 +43,6 @@ export default function AppBuilder() {
   const [currentRoute, setCurrentRoute] = useState('/');
   const [publishUrl, setPublishUrl] = useState('jm36jsglgw76e');
   const [isEditingUrl, setIsEditingUrl] = useState(false);
-  const [iframeKey, setIframeKey] = useState(0); // For forcing iframe reload
   const [logs] = useState([
     { timestamp: '2025-12-04T13:00:02.0072', source: 'mocha', message: 'Starting sandbox...' }
   ]);
@@ -53,9 +52,6 @@ export default function AppBuilder() {
   const [isLoading, setIsLoading] = useState(true);
   const [generatedWebsite, setGeneratedWebsite] = useState<string>('');
   const [appName, setAppName] = useState('My App');
-  const [changesCount] = useState(8);
-  const [filesCount] = useState(8);
-  const [buildTime] = useState('2m 3s');
   
   // Use these variables to avoid TypeScript warnings (only log once)
   // console.log('Stats:', { changesCount, filesCount, buildTime });
@@ -206,7 +202,7 @@ export default function AppBuilder() {
         }
 
         // Try to load chat history for this app
-        let chatHistory = [];
+        let chatHistory: any[] = [];
         try {
           chatHistory = await databaseService.getAppChatMessages(appId, user.id);
         } catch (dbError) {
@@ -217,7 +213,7 @@ export default function AppBuilder() {
         
         const formattedMessages: Array<{role: 'user' | 'assistant', content: string}> = [];
         
-        chatHistory.forEach(msg => {
+        chatHistory.forEach((msg: any) => {
           formattedMessages.push({
             role: 'user',
             content: msg.message_text
@@ -1288,10 +1284,6 @@ export default function AppBuilder() {
                       )}
                       
                       {/* Live React Preview */}
-                      {console.log('🔍 Preview condition check:') || 
-                       console.log('  generatedWebsite:', generatedWebsite) ||
-                       console.log('  projectFiles.length:', projectFiles.length) ||
-                       console.log('  shouldShowPreview:', generatedWebsite === 'REACT_PROJECT_E2B_PREVIEW' && projectFiles.length > 0)}
                       {generatedWebsite === 'REACT_PROJECT_E2B_PREVIEW' && projectFiles.length > 0 ? (
                         // E2B Preview for React projects
                         <div className={`${

@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 
 interface Env {
-  R2_BUCKET?: R2Bucket;
-  DB?: D1Database;
+  R2_BUCKET?: any;
+  DB?: any;
 }
 
 const app = new Hono<{ Bindings: Env }>();

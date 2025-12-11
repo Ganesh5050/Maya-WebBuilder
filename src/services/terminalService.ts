@@ -38,12 +38,7 @@ export class TerminalService {
       const pty = await sandbox.pty.create({
         cols: options.cols,
         rows: options.rows,
-        cwd: options.cwd || '/home/user',
-        env: {
-          TERM: 'xterm-256color',
-          SHELL: '/bin/bash',
-          ...options.env
-        }
+        cwd: options.cwd || '/home/user'
       });
 
       const sessionId = `terminal_${sandbox.sandboxId}_${Date.now()}`;

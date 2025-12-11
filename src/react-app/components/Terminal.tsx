@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
@@ -6,7 +6,7 @@ import { X, Minimize2, Maximize2, RotateCcw, Copy } from 'lucide-react';
 import '@xterm/xterm/css/xterm.css';
 
 interface TerminalProps {
-  sessionId: string | null;
+  sessionId?: string | null;
   onData?: (data: string) => void;
   onResize?: (cols: number, rows: number) => void;
   onClose?: () => void;
@@ -14,14 +14,14 @@ interface TerminalProps {
   height?: number;
 }
 
-export function Terminal({
+export const Terminal = forwardRef<any, TerminalProps>(({
   sessionId,
   onData,
   onResize,
   onClose,
   className = '',
   height = 300
-}: TerminalProps) {
+}, ref) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -38,7 +38,6 @@ export function Terminal({
         foreground: '#a9b1d6',
         cursor: '#f7768e',
         cursorAccent: '#1a1b26',
-        selection: '#33467c',
         black: '#32344a',
         red: '#f7768e',
         green: '#9ece6a',
@@ -174,7 +173,7 @@ export function Terminal({
   };
 
   // Expose writeToTerminal method
-  React.useImperativeHandle(React.forwardRef(() => null), () => ({
+  useImperativeHandle(ref, () => ({
     writeToTerminal,
     clearTerminal,
     fit: () => fitAddonRef.current?.fit()
@@ -270,20 +269,4 @@ export function Terminal({
       )}
     </div>
   );
-}
-
-// Export the component with a forward ref for imperative methods
-export default React.forwardRef<
-  { writeToTerminal: (data: string) => void; clearTerminal: () => void; fit: () => void },
-  TerminalProps
->((props, ref) => {
-  const terminalRef = useRef<any>(null);
-
-  React.useImperativeHandle(ref, () => ({
-    writeToTerminal: (data: string) => terminalRef.current?.writeToTerminal(data),
-    clearTerminal: () => terminalRef.current?.clearTerminal(),
-    fit: () => terminalRef.current?.fit()
-  }));
-
-  return <Terminal {...props} ref={terminalRef} />;
 });
