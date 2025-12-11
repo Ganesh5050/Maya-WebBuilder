@@ -114,7 +114,7 @@ export class E2BService {
 
       console.log('📦 Installing dependencies...');
       const result = await this.sandbox.commands.run('npm install', {
-        timeout: 120000
+        timeoutMs: 120000
       });
 
       console.log('✅ Dependencies installed');
@@ -167,7 +167,7 @@ export class E2BService {
       try {
         devProcess = await this.sandbox.commands.run('npm run dev', {
           background: true,
-          timeout: 60000
+          timeoutMs: 60000
         });
         console.log('📊 Dev server process started with npm run dev');
       } catch (error) {
@@ -175,7 +175,7 @@ export class E2BService {
         try {
           devProcess = await this.sandbox.commands.run('npx vite --host 0.0.0.0 --port 5173', {
             background: true,
-            timeout: 60000
+            timeoutMs: 60000
           });
           console.log('📊 Dev server process started with direct vite command');
         } catch (viteError) {
@@ -193,7 +193,7 @@ export class E2BService {
         try {
           // Check if port 5173 is responding
           await this.sandbox.commands.run('curl -f http://localhost:5173 || echo "not ready"', {
-            timeout: 2000
+            timeoutMs: 2000
           });
           serverReady = true;
           console.log('✅ Dev server is responding');
@@ -239,7 +239,7 @@ export class E2BService {
     try {
       console.log(`🔧 Executing: ${command}`);
       const result = await this.sandbox.commands.run(command, {
-        timeout: 60000
+        timeoutMs: 60000
       });
       console.log('✅ Command executed');
       return {

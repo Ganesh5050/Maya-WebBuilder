@@ -105,14 +105,14 @@ export class FileExplorerService {
             id: childId,
             name: entry.name,
             path: childPath,
-            type: entry.type === 'directory' ? 'directory' : 'file',
+            type: (entry.type as any) === 'directory' ? 'directory' : 'file',
             size: entry.size,
             modified: entry.modifiedTime ? new Date(entry.modifiedTime) : undefined,
             isExpanded: false
           };
 
           // If it's a directory, recursively load children
-          if (entry.type === 'directory') {
+          if ((entry.type as any) === 'directory') {
             try {
               const subEntries = await this.sandbox.files.list(childPath);
               childNode.children = [];
@@ -130,7 +130,7 @@ export class FileExplorerService {
                   id: subChildId,
                   name: subEntry.name,
                   path: subChildPath,
-                  type: subEntry.type === 'directory' ? 'directory' : 'file',
+                  type: (subEntry.type as any) === 'directory' ? 'directory' : 'file',
                   size: subEntry.size,
                   modified: subEntry.modifiedTime ? new Date(subEntry.modifiedTime) : undefined,
                   isExpanded: false
@@ -167,8 +167,7 @@ export class FileExplorerService {
       } else {
         // For non-root paths, this shouldn't be called in the current implementation
         // But we'll handle it gracefully
-        const entries = await this.sandbox.files.list(path);
-        const parentEntry = entries[0]; // This is a fallback
+        await this.sandbox.files.list(path);
 
         return {
           id,
@@ -293,7 +292,10 @@ export class FileExplorerService {
 
     try {
       console.log(`📝 Renaming file: ${oldPath} → ${newPath}`);
-      await this.sandbox.files.move(oldPath, newPath);
+      // E2B doesn't have a move method, so we read, write, and delete
+      const content = await this.sandbox.files.read(oldPath);
+      await this.sandbox.files.write(newPath, content);
+      await this.sandbox.files.remove(oldPath);
       console.log(`✅ File renamed successfully: ${oldPath} → ${newPath}`);
       
       // Refresh file tree

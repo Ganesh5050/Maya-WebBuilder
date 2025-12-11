@@ -36,11 +36,8 @@ export class TerminalService {
 
       // Create PTY session in E2B sandbox
       const pty = await sandbox.pty.create({
-        command: '/bin/bash',
-        size: {
-          cols: options.cols,
-          rows: options.rows
-        },
+        cols: options.cols,
+        rows: options.rows,
         cwd: options.cwd || '/home/user',
         env: {
           TERM: 'xterm-256color',
@@ -63,31 +60,28 @@ export class TerminalService {
       // Set up data handling using E2B PTY events
       (async () => {
         try {
-          for await (const event of pty.events) {
-            session.lastActivity = new Date();
-            
-            if (event.event?.event?.case === 'data') {
-              const data = event.event.event.value.data;
-              // Convert Uint8Array to string
-              const textData = new TextDecoder().decode(data);
+          // Handle PTY events if available
+          if ((pty as any).on) {
+            (pty as any).on('data', (data: any) => {
+              session.lastActivity = new Date();
+              const textData = typeof data === 'string' ? data : new TextDecoder().decode(data);
               const callback = this.onDataCallbacks.get(sessionId);
               if (callback) {
                 callback(textData);
               }
-            } else if (event.event?.event?.case === 'exit') {
-              const exitCode = event.event.event.value.exitCode || 0;
+            });
+
+            (pty as any).on('exit', (exitCode: number) => {
               console.log(`🔚 Terminal session ${sessionId} exited with code: ${exitCode}`);
               session.isConnected = false;
               const callback = this.onExitCallbacks.get(sessionId);
               if (callback) {
                 callback(exitCode);
               }
-              break;
-            }
+            });
           }
         } catch (error) {
-          console.error(`❌ Terminal session ${sessionId} event loop error:`, error);
-          session.isConnected = false;
+          console.error(`❌ Terminal session ${sessionId} event setup error:`, error);
         }
       })();
 
