@@ -87,7 +87,6 @@ export function useE2B(projectId: string, files: ProjectFile[]): UseE2BReturn {
   }, [projectId, files, initializeSandbox]);
 
   const retry = useCallback(() => {
-    setRetryCount(prev => prev + 1);
     setPreviewURL(null);
     setError(null);
     initializeSandbox();

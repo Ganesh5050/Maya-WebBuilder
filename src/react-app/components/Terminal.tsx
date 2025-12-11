@@ -63,8 +63,7 @@ export const Terminal = forwardRef<any, TerminalProps>(({
       cursorBlink: true,
       cursorStyle: 'block',
       scrollback: 1000,
-      tabStopWidth: 4,
-      bellStyle: 'none'
+      tabStopWidth: 4
     });
 
     // Create addons

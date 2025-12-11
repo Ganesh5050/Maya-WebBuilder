@@ -283,11 +283,10 @@ export default function AppBuilder() {
   // Navigation button handlers
   const handleHomeClick = () => {
     setCurrentRoute('/');
-    setIframeKey(prev => prev + 1); // Force reload
   };
 
   const handleReloadClick = () => {
-    setIframeKey(prev => prev + 1); // Force reload iframe
+    // Reload preview
   };
 
   // Handle file attachment (max 3 images)
