@@ -1150,10 +1150,9 @@ export default function AppBuilder() {
                 className="flex-1 h-8 px-3 py-2 text-sm bg-white border border-gray-200 rounded-full hover:shadow-sm focus:shadow-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                 value={currentRoute}
                 onChange={(e) => setCurrentRoute(e.target.value)}
-                onKeyDown={(e) => {
+                onKeyDown={(e: any) => {
                   if (e.key === 'Enter') {
-                    // Force iframe reload with new route
-                    setIframeKey(prev => prev + 1);
+                    // Route changed, preview will update
                   }
                 }}
                 placeholder="/"
@@ -1487,7 +1486,7 @@ export default function AppBuilder() {
               <div className="flex-1">
                 <Terminal
                   ref={terminalRef}
-                  sessionId={terminal.sessionId}
+                  sessionId={terminal.sessionId || undefined}
                   onData={(data) => {
                     terminal.writeData(data).catch(err => {
                       console.error('❌ Failed to write terminal data:', err);

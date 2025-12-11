@@ -38,7 +38,8 @@ export class TerminalService {
       const pty = await sandbox.pty.create({
         cols: options.cols,
         rows: options.rows,
-        cwd: options.cwd || '/home/user'
+        cwd: options.cwd || '/home/user',
+        onData: () => {} // Required by E2B API
       });
 
       const sessionId = `terminal_${sandbox.sandboxId}_${Date.now()}`;
