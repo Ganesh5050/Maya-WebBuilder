@@ -1456,7 +1456,7 @@ export default function AppBuilder() {
               {/* File Explorer */}
               <div className="w-64 flex-shrink-0">
                 <FileExplorer
-                  selectedFile={fileManager.selectedFile}
+                  selectedFile={fileManager.selectedFile || undefined}
                   onFileSelect={(path) => fileManager.setSelectedFile(path)}
                   className="h-full"
                 />
@@ -1465,7 +1465,7 @@ export default function AppBuilder() {
               {/* Code Editor */}
               <div className="flex-1">
                 <CodeEditor
-                  selectedFile={fileManager.selectedFile}
+                  selectedFile={fileManager.selectedFile || undefined}
                   onFileChange={(path, content) => {
                     console.log('📝 File changed:', path, `(${content.length} chars)`);
                   }}
