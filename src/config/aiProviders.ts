@@ -204,20 +204,19 @@ export const getNextOpenRouterProvider = (): string => {
 
 /**
  * Get available AI provider with API key
- * DEVELOPMENT MODE: Prioritize providers with available quota
+ * DEVELOPMENT MODE: Use providers with available quota
  */
 export const getAvailableProvider = (): AIProvider | null => {
-  // PRIORITY ORDER: Use providers with available quota first
-  // OpenRouter free models are exhausted (50 requests/day limit hit)
-  // Use Google Gemini, Groq, AIML, Chute which still have quota
+  // PRIORITY ORDER: Use working providers first
+  // Google Gemini API key is BLOCKED (leaked)
+  // OpenRouter models exhausted
+  // Use: Groq, AIML, Chute which have quota
   
   const priorityOrder = [
-    'google',  // Google Gemini - free and reliable
-    'groq',    // Groq - fast and free
+    'groq',    // Groq - fast and free, PRIORITY
     'aiml',    // AIML API - has quota
     'chute',   // Chute AI - backup
-    'openrouter8', // Try Devstral (was working earlier)
-    'openrouter9', 'openrouter10', 'openrouter11', 'openrouter12', // Try newer models
+    'openrouter8', 'openrouter9', 'openrouter10', 'openrouter11', 'openrouter12', // Try newer OpenRouter models
     'openrouter', 'openrouter2', 'openrouter3', 'openrouter4', 'openrouter5', 'openrouter6', 'openrouter7'
   ];
   
