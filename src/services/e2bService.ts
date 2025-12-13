@@ -162,53 +162,154 @@ export class E2BService {
 
       console.log('🚀 Starting dev server...');
 
-      // Start dev server in background
+      // First, check if package.json exists and has the right scripts
       try {
-        await this.sandbox.commands.run('npm run dev', {
-          background: true,
-          timeoutMs: 60000
+        const packageJson = await this.sandbox.files.read('package.json');
+        console.log('📋 Package.json found');
+        
+        // Parse and check if it has dev script
+        const pkg = JSON.parse(packageJson);
+        if (!pkg.scripts?.dev) {
+          console.log('⚠️ No dev script found, adding one...');
+          pkg.scripts = pkg.scripts || {};
+          pkg.scripts.dev = 'vite --host 0.0.0.0 --port 5173';
+          await this.sandbox.files.write('package.json', JSON.stringify(pkg, null, 2));
+        }
+      } catch (error) {
+        console.log('⚠️ Could not read/update package.json:', error);
+      }
+
+      // Create or update vite.config.js to ensure proper server configuration
+      const viteConfig = `import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true,
+    hmr: {
+      port: 5173
+    }
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true
+  }
+})`;
+
+      await this.sandbox.files.write('vite.config.js', viteConfig);
+      console.log('✅ Vite config updated');
+
+      // Kill any existing processes on port 5173
+      try {
+        await this.sandbox.commands.run('pkill -f "vite\\|:5173" || true', {
+          timeoutMs: 5000
         });
-        console.log('📊 Dev server process started with npm run dev');
+        console.log('🧹 Killed existing processes on port 5173');
+      } catch (error) {
+        console.log('⚠️ Could not kill existing processes (this is normal)');
+      }
+
+      // Wait a moment for processes to clean up
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Start dev server with explicit configuration
+      console.log('🚀 Starting Vite dev server...');
+      
+      const devCommand = 'npm run dev -- --host 0.0.0.0 --port 5173';
+      
+      try {
+        // Start the dev server in background
+        await this.sandbox.commands.run(devCommand, {
+          background: true,
+          timeoutMs: 10000
+        });
+        console.log('📊 Dev server process started');
+        
+        // Give it a moment to initialize
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
       } catch (error) {
         console.log('⚠️ npm run dev failed, trying direct vite command...');
         try {
           await this.sandbox.commands.run('npx vite --host 0.0.0.0 --port 5173', {
             background: true,
-            timeoutMs: 60000
+            timeoutMs: 10000
           });
-          console.log('📊 Dev server process started with direct vite command');
+          console.log('📊 Direct vite command started');
+          await new Promise(resolve => setTimeout(resolve, 3000));
         } catch (viteError) {
+          console.error('❌ Both npm run dev and direct vite failed');
           throw new Error(`Failed to start dev server: ${error}`);
         }
       }
 
-      // Wait for server to start and check if it's responding
-      console.log('⏳ Waiting for dev server to start...');
+      // Wait for server to be ready with better health checks
+      console.log('⏳ Waiting for dev server to be ready...');
       let serverReady = false;
       let attempts = 0;
-      const maxAttempts = 30; // 30 seconds max wait
+      const maxAttempts = 20; // 40 seconds max wait
       
       while (!serverReady && attempts < maxAttempts) {
         try {
-          // Check if port 5173 is responding
-          await this.sandbox.commands.run('curl -f http://localhost:5173 || echo "not ready"', {
-            timeoutMs: 2000
+          // Check if port 5173 is listening
+          const portCheck = await this.sandbox.commands.run('netstat -tlnp | grep :5173 || echo "not listening"', {
+            timeoutMs: 3000
           });
-          serverReady = true;
-          console.log('✅ Dev server is responding');
+          
+          if (portCheck.stdout.includes(':5173')) {
+            console.log('✅ Port 5173 is listening');
+            
+            // Try to make an HTTP request to verify it's responding
+            try {
+              const httpCheck = await this.sandbox.commands.run('curl -s -o /dev/null -w "%{http_code}" http://localhost:5173 || echo "000"', {
+                timeoutMs: 5000
+              });
+              
+              const statusCode = httpCheck.stdout.trim();
+              if (statusCode === '200' || statusCode === '404') { // 404 is OK for SPA routing
+                serverReady = true;
+                console.log('✅ Dev server is responding with status:', statusCode);
+              } else {
+                console.log(`⏳ Server responding with status ${statusCode}, waiting...`);
+              }
+            } catch (httpError) {
+              console.log('⏳ HTTP check failed, retrying...');
+            }
+          } else {
+            console.log('⏳ Port 5173 not listening yet...');
+          }
         } catch (error) {
+          console.log('⏳ Health check failed, retrying...');
+        }
+        
+        if (!serverReady) {
           attempts++;
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 2000));
           console.log(`⏳ Waiting for dev server... (${attempts}/${maxAttempts})`);
         }
       }
 
       if (!serverReady) {
-        throw new Error('Dev server failed to start after 30 seconds');
+        // Try to get more debugging info
+        try {
+          const processCheck = await this.sandbox.commands.run('ps aux | grep -E "(vite|node)" | grep -v grep || echo "no processes"');
+          console.log('🔍 Running processes:', processCheck.stdout);
+          
+          const portCheck = await this.sandbox.commands.run('netstat -tlnp || echo "netstat failed"');
+          console.log('🔍 Open ports:', portCheck.stdout);
+        } catch (debugError) {
+          console.log('⚠️ Could not get debug info');
+        }
+        
+        throw new Error('Dev server failed to start after 40 seconds. Check sandbox logs for details.');
       }
 
       // Get preview URL
-      const url = `https://5173-${this.sandbox.sandboxId}.${this.sandbox.sandboxDomain}`;
+      const url = `https://5173-${this.sandbox.sandboxId}.e2b.app`;
       console.log('✅ Dev server started:', url);
 
       this.updateStatus({
@@ -256,8 +357,8 @@ export class E2BService {
     if (!this.sandbox) throw new Error('Sandbox not initialized');
 
     try {
-      // Construct preview URL from sandbox domain and port
-      const url = `https://5173-${this.sandbox.sandboxId}.${this.sandbox.sandboxDomain}`;
+      // Construct preview URL with correct E2B domain format
+      const url = `https://5173-${this.sandbox.sandboxId}.e2b.app`;
       return url;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';

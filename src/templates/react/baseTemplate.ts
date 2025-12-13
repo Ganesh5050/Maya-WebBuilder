@@ -91,9 +91,9 @@ function getPackageJsonContent(projectName: string, description: string): string
     type: 'module',
     description: description,
     scripts: {
-      dev: 'vite',
+      dev: 'vite --host 0.0.0.0 --port 5173',
       build: 'tsc && vite build',
-      preview: 'vite preview',
+      preview: 'vite preview --host 0.0.0.0 --port 5173',
       lint: 'eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0'
     },
     dependencies: {
@@ -276,6 +276,19 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true,
+    hmr: {
+      port: 5173
+    }
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true
+  }
 })
 `;
 }
