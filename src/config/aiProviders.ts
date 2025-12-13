@@ -86,7 +86,7 @@ export const AI_PROVIDERS: Record<string, AIProvider> = {
   },
   openrouter: {
     name: 'OpenRouter',
-    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
+    apiKey: '', // Disabled due to daily rate limits
     model: 'google/gemini-2.0-flash-exp:free', // Free Gemini 2.0 Flash
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
     maxTokens: 4000,
@@ -102,8 +102,8 @@ export const DEFAULT_PROVIDER = 'google'; // Gemini is free and reliable
  * Priority: google (gemini) > groq > openai > others
  */
 export const getAvailableProvider = (): AIProvider | null => {
-  // Priority order: most reliable and free first (OpenRouter may have rate limits)
-  const priorityOrder = ['openai', 'groq', 'aiml', 'chute', 'openrouter', 'google'];
+  // Priority order: avoid rate-limited providers first
+  const priorityOrder = ['openai', 'groq', 'aiml', 'chute', 'google'];
   
   // Try priority providers first
   for (const key of priorityOrder) {

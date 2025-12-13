@@ -102,21 +102,17 @@ export class SandboxManager {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       console.error(`❌ Failed to create managed sandbox: ${errorMsg}`);
       
-      // If we hit the sandbox limit, try cleaning up and retrying once
-      if (errorMsg.includes('maximum number of concurrent E2B sandboxes')) {
-        console.log('🧹 Hit sandbox limit, cleaning up all sandboxes and retrying...');
+      // If we hit the sandbox limit, try cleaning up and retrying with exponential backoff
+      if (errorMsg.includes('maximum number of concurrent E2B sandboxes') || errorMsg.includes('429')) {
+        console.log('🧹 Hit E2B rate limit, cleaning up all sandboxes...');
         await this.cleanupAll();
         
-        // Wait a moment for cleanup to complete
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Wait longer for E2B to process cleanup
+        console.log('⏳ Waiting for E2B cleanup to complete...');
+        await new Promise(resolve => setTimeout(resolve, 10000)); // 10 seconds
         
-        // Retry once
-        try {
-          return await this.createManagedSandbox(projectId, files);
-        } catch (retryError) {
-          console.error('❌ Retry also failed:', retryError);
-          throw retryError;
-        }
+        // Don't retry automatically - let user retry manually
+        throw new Error('E2B sandbox limit reached. All sandboxes have been cleaned up. Please wait a moment and try again.');
       }
       
       throw error;
