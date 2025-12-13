@@ -83,6 +83,14 @@ export const AI_PROVIDERS: Record<string, AIProvider> = {
     endpoint: 'https://platform.qubrid.com/api/v1/qubridai/multimodal/chat',
     maxTokens: 2048,
     temperature: 0.7
+  },
+  openrouter: {
+    name: 'OpenRouter',
+    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
+    model: 'google/gemini-2.0-flash-exp:free', // Free Gemini 2.0 Flash
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
   }
 };
 
@@ -95,7 +103,7 @@ export const DEFAULT_PROVIDER = 'google'; // Gemini is free and reliable
  */
 export const getAvailableProvider = (): AIProvider | null => {
   // Priority order: most reliable and free first (avoiding Google due to quota limits)
-  const priorityOrder = ['openai', 'groq', 'aiml', 'chute', 'google'];
+  const priorityOrder = ['openrouter', 'openai', 'groq', 'aiml', 'chute', 'google'];
   
   // Try priority providers first
   for (const key of priorityOrder) {
@@ -125,6 +133,7 @@ export function formatRequest(provider: string, prompt: string): any {
     case 'groq':
     case 'aiml':
     case 'chute':
+    case 'openrouter':
       // OpenAI-compatible format
       return {
         model: AI_PROVIDERS[provider].model,
@@ -187,6 +196,7 @@ export function parseResponse(provider: string, response: any): AIResponse {
     case 'groq':
     case 'aiml':
     case 'chute':
+    case 'openrouter':
       // OpenAI-compatible response format
       return {
         content: response.choices[0]?.message?.content || '',
@@ -296,7 +306,8 @@ export const RATE_LIMITS = {
   anthropic: { requestsPerMinute: 50, tokensPerMinute: 40000 },
   google: { requestsPerMinute: 60, tokensPerMinute: 32000 },
   grok: { requestsPerMinute: 60, tokensPerMinute: 100000 },
-  qubrid: { requestsPerMinute: 60, tokensPerMinute: 50000 }
+  qubrid: { requestsPerMinute: 60, tokensPerMinute: 50000 },
+  openrouter: { requestsPerMinute: 200, tokensPerMinute: 1000000 } // Free models, generous limits
 };
 
 export function shouldRetry(_provider: string, error: any): boolean {
