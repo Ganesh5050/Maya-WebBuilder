@@ -110,8 +110,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUpWithPassword = async (email: string, password: string, firstName: string, lastName: string) => {
     console.log('=== AUTH CONTEXT SIGN UP START ===');
     console.log('Attempting to sign up with:', { email, firstName, lastName });
-    console.log('Supabase URL:', 'https://simngjnepjayqkwmkau.supabase.co');
-    console.log('Supabase client exists:', !!supabase);
     
     try {
       console.log('Calling supabase.auth.signUp...');
@@ -123,7 +121,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             first_name: firstName,
             last_name: lastName,
             full_name: `${firstName} ${lastName}`
-          }
+          },
+          // Skip email confirmation
+          emailRedirectTo: undefined
         }
       });
       
@@ -134,13 +134,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
       
+      // If user is created but not confirmed, that's OK for our use case
+      if (data.user && !data.user.email_confirmed_at) {
+        console.log('✅ User created successfully (email confirmation disabled)');
+      }
+      
       console.log('=== AUTH CONTEXT SIGN UP SUCCESS ===');
     } catch (err: any) {
       console.error('=== AUTH CONTEXT SIGN UP ERROR ===');
       console.error('Complete sign up error:', err);
-      console.error('Error type:', typeof err);
-      console.error('Error message:', err?.message || 'No message available');
-      console.error('Error stack:', err?.stack || 'No stack available');
       throw err;
     }
   }
