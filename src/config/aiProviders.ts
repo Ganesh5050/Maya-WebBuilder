@@ -102,8 +102,8 @@ export const DEFAULT_PROVIDER = 'google'; // Gemini is free and reliable
  * Priority: google (gemini) > groq > openai > others
  */
 export const getAvailableProvider = (): AIProvider | null => {
-  // Priority order: most reliable and free first (avoiding Google due to quota limits)
-  const priorityOrder = ['openrouter', 'openai', 'groq', 'aiml', 'chute', 'google'];
+  // Priority order: most reliable and free first (OpenRouter may have rate limits)
+  const priorityOrder = ['openai', 'groq', 'aiml', 'chute', 'openrouter', 'google'];
   
   // Try priority providers first
   for (const key of priorityOrder) {

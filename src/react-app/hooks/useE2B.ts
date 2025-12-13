@@ -20,9 +20,17 @@ export function useE2B(projectId: string, files: ProjectFile[]): UseE2BReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [status, setStatus] = useState('Initializing...');
+  const [isInitializing, setIsInitializing] = useState(false);
 
   const initializeSandbox = useCallback(async () => {
+    // Prevent multiple simultaneous initializations
+    if (isInitializing) {
+      console.log('🔄 Sandbox initialization already in progress, skipping...');
+      return;
+    }
+
     try {
+      setIsInitializing(true);
       setIsLoading(true);
       setError(null);
       setStatus('Getting API key...');
@@ -55,10 +63,17 @@ export function useE2B(projectId: string, files: ProjectFile[]): UseE2BReturn {
       setError(error);
       setStatus('Error');
       setIsLoading(false);
+    } finally {
+      setIsInitializing(false);
     }
-  }, [projectId, files]);
+  }, [projectId, files, isInitializing]);
 
   useEffect(() => {
+    // Only initialize if we have files and not already initializing
+    if (files.length === 0 || isInitializing) {
+      return;
+    }
+
     // Cleanup any existing sandbox first
     const cleanup = async () => {
       try {
@@ -84,7 +99,7 @@ export function useE2B(projectId: string, files: ProjectFile[]): UseE2BReturn {
         console.error('Error getting sandbox manager:', err);
       }
     };
-  }, [projectId, files, initializeSandbox]);
+  }, [projectId, files.length, initializeSandbox, isInitializing]);
 
   const retry = useCallback(() => {
     setPreviewURL(null);

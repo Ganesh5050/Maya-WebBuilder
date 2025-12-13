@@ -219,78 +219,79 @@ export default defineConfig({
       // Start dev server with explicit configuration
       console.log('🚀 Starting Vite dev server...');
       
-      const devCommand = 'npm run dev -- --host 0.0.0.0 --port 5173';
+      // Try multiple approaches to start the dev server
+      let serverStarted = false;
+      const commands = [
+        'npm run dev',
+        'npx vite --host 0.0.0.0 --port 5173',
+        'node_modules/.bin/vite --host 0.0.0.0 --port 5173'
+      ];
       
-      try {
-        // Start the dev server in background
-        await this.sandbox.commands.run(devCommand, {
-          background: true,
-          timeoutMs: 10000
-        });
-        console.log('📊 Dev server process started');
-        
-        // Give it a moment to initialize
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-      } catch (error) {
-        console.log('⚠️ npm run dev failed, trying direct vite command...');
+      for (const command of commands) {
         try {
-          await this.sandbox.commands.run('npx vite --host 0.0.0.0 --port 5173', {
+          console.log(`🔧 Trying: ${command}`);
+          await this.sandbox.commands.run(command, {
             background: true,
-            timeoutMs: 10000
+            timeoutMs: 15000
           });
-          console.log('📊 Direct vite command started');
-          await new Promise(resolve => setTimeout(resolve, 3000));
-        } catch (viteError) {
-          console.error('❌ Both npm run dev and direct vite failed');
-          throw new Error(`Failed to start dev server: ${error}`);
+          console.log('📊 Dev server process started');
+          serverStarted = true;
+          break;
+        } catch (error) {
+          console.log(`⚠️ ${command} failed:`, error);
+          continue;
         }
       }
+      
+      if (!serverStarted) {
+        throw new Error('Failed to start dev server with any command');
+      }
+      
+      // Give the server more time to initialize
+      await new Promise(resolve => setTimeout(resolve, 5000));
 
       // Wait for server to be ready with better health checks
       console.log('⏳ Waiting for dev server to be ready...');
       let serverReady = false;
       let attempts = 0;
-      const maxAttempts = 20; // 40 seconds max wait
+      const maxAttempts = 15; // 30 seconds max wait
       
       while (!serverReady && attempts < maxAttempts) {
         try {
-          // Check if port 5173 is listening
-          const portCheck = await this.sandbox.commands.run('netstat -tlnp | grep :5173 || echo "not listening"', {
+          // First check if any process is running on port 5173
+          const processCheck = await this.sandbox.commands.run('lsof -i :5173 || echo "no process"', {
             timeoutMs: 3000
           });
           
-          if (portCheck.stdout.includes(':5173')) {
-            console.log('✅ Port 5173 is listening');
+          if (processCheck.stdout.includes('LISTEN')) {
+            console.log('✅ Process listening on port 5173');
             
-            // Try to make an HTTP request to verify it's responding
+            // Try a simple HTTP request
             try {
-              const httpCheck = await this.sandbox.commands.run('curl -s -o /dev/null -w "%{http_code}" http://localhost:5173 || echo "000"', {
+              const httpCheck = await this.sandbox.commands.run('curl -s -I http://localhost:5173 | head -1 || echo "failed"', {
                 timeoutMs: 5000
               });
               
-              const statusCode = httpCheck.stdout.trim();
-              if (statusCode === '200' || statusCode === '404') { // 404 is OK for SPA routing
+              if (httpCheck.stdout.includes('200') || httpCheck.stdout.includes('404')) {
                 serverReady = true;
-                console.log('✅ Dev server is responding with status:', statusCode);
+                console.log('✅ Dev server is responding');
+                break;
               } else {
-                console.log(`⏳ Server responding with status ${statusCode}, waiting...`);
+                console.log('⏳ Server not responding yet...');
               }
             } catch (httpError) {
               console.log('⏳ HTTP check failed, retrying...');
             }
           } else {
-            console.log('⏳ Port 5173 not listening yet...');
+            console.log('⏳ No process listening on port 5173 yet...');
           }
         } catch (error) {
           console.log('⏳ Health check failed, retrying...');
         }
         
-        if (!serverReady) {
-          attempts++;
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          console.log(`⏳ Waiting for dev server... (${attempts}/${maxAttempts})`);
-        }
+        attempts++;
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log(`⏳ Waiting for dev server... (${attempts}/${maxAttempts})`);
       }
 
       if (!serverReady) {
