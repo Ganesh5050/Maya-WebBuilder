@@ -2,7 +2,7 @@
 // Uses AI APIs to generate unique content for website templates
 // Similar to Bolt.diy's AI-powered content generation
 
-import { getAvailableProvider, formatRequest, parseResponse, handleProviderError, shouldRetry, getRetryDelay, AIProvider } from '../config/aiProviders';
+import { getAvailableProvider, getNextAvailableProvider, formatRequest, parseResponse, handleProviderError, shouldRetry, getRetryDelay, AIProvider } from '../config/aiProviders';
 import { PromptAnalysis } from './promptAnalyzer';
 import { getTemplate } from '../config/templates';
 
@@ -63,7 +63,7 @@ export class ContentGenerator {
     analysis: PromptAnalysis,
     options: ContentGenerationOptions
   ): Promise<string | string[]> {
-    const provider = getAvailableProvider();
+    let provider = getAvailableProvider();
     
     // If no provider is available, use default content
     if (!provider) {
@@ -71,50 +71,68 @@ export class ContentGenerator {
       return variable.defaultValue || this.getDefaultContent(variable.key, analysis);
     }
     
-    // Find provider key to get configuration
-    const providerKey = Object.keys(AI_PROVIDERS).find(key => AI_PROVIDERS[key] === provider);
-    if (!providerKey) {
-      console.error('❌ Provider configuration not found');
-      throw new Error('Provider configuration not found');
-    }
-    
-    console.log(`🤖 Generating ${variable.key} using ${providerKey}...`);
-    
     const generationPrompt = this.buildVariablePrompt(variable, prompt, analysis, options);
-    
     let lastError: Error | null = null;
+    let currentProviderKey: string | null = null;
     
-    // Retry logic with exponential backoff
-    for (let attempt = 0; attempt <= 2; attempt++) {
-      try {
-        console.log(`🔄 Attempt ${attempt + 1} for ${variable.key}`);
-        const response = await this.callAI(provider, generationPrompt, providerKey);
-        
-        if (!response || response.trim() === '') {
-          throw new Error('Empty response from AI');
+    // Try multiple providers if one fails (especially for rate limits)
+    for (let providerAttempt = 0; providerAttempt < 3; providerAttempt++) {
+      // Find provider key to get configuration
+      currentProviderKey = Object.keys(AI_PROVIDERS).find(key => AI_PROVIDERS[key] === provider);
+      if (!currentProviderKey) {
+        console.error('❌ Provider configuration not found');
+        // Try next provider
+        provider = getNextAvailableProvider(currentProviderKey || undefined);
+        if (!provider) break;
+        continue;
+      }
+      
+      console.log(`🤖 Generating ${variable.key} using ${currentProviderKey} (attempt ${providerAttempt + 1})...`);
+      
+      // Retry logic with exponential backoff for current provider
+      for (let attempt = 0; attempt <= 1; attempt++) {
+        try {
+          console.log(`🔄 Provider ${currentProviderKey}, attempt ${attempt + 1} for ${variable.key}`);
+          const response = await this.callAI(provider, generationPrompt, currentProviderKey);
+          
+          if (!response || response.trim() === '') {
+            throw new Error('Empty response from AI');
+          }
+          
+          console.log(`✅ Generated ${variable.key}: ${response.substring(0, 50)}...`);
+          return this.parseVariableContent(variable, response, analysis);
+        } catch (error) {
+          lastError = error as Error;
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          console.error(`❌ ${currentProviderKey} attempt ${attempt + 1} failed for ${variable.key}:`, errorMsg);
+          
+          // Check if it's a rate limit error
+          if (errorMsg.includes('429') || errorMsg.includes('rate limit') || errorMsg.includes('quota')) {
+            console.log(`🚫 Rate limit hit for ${currentProviderKey}, switching providers...`);
+            break; // Break inner loop to try next provider
+          }
+          
+          if (attempt < 1) {
+            const delay = getRetryDelay(attempt);
+            console.log(`⏳ Retrying ${currentProviderKey} in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
         }
-        
-        console.log(`✅ Generated ${variable.key}: ${response.substring(0, 50)}...`);
-        return this.parseVariableContent(variable, response, analysis);
-      } catch (error) {
-        lastError = error as Error;
-        console.error(`❌ Attempt ${attempt + 1} failed for ${variable.key}:`, error);
-        
-        if (attempt < 2) {
-          const delay = getRetryDelay(attempt);
-          console.log(`⏳ Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          continue;
-        }
-        
-        // On final failure, use default content
-        console.warn(`⚠️ All attempts failed for ${variable.key}, using default content`);
-        return variable.defaultValue || this.getDefaultContent(variable.key, analysis);
+      }
+      
+      // If we get here, current provider failed - try next one
+      console.log(`🔄 Switching from ${currentProviderKey} to next available provider...`);
+      provider = getNextAvailableProvider(currentProviderKey);
+      if (!provider) {
+        console.error('❌ No more providers available');
+        break;
       }
     }
     
-    // Fallback to default content
-    console.warn(`⚠️ Using default content for ${variable.key}`);
+    // All providers failed, use default content
+    console.warn(`⚠️ All providers failed for ${variable.key}, using default content`);
+    console.warn(`Last error:`, lastError?.message);
     return variable.defaultValue || this.getDefaultContent(variable.key, analysis);
   }
   

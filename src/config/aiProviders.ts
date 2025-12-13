@@ -85,44 +85,208 @@ export const AI_PROVIDERS: Record<string, AIProvider> = {
     temperature: 0.7
   },
   openrouter: {
-    name: 'OpenRouter',
-    apiKey: '', // Disabled due to daily rate limits
-    model: 'google/gemini-2.0-flash-exp:free', // Free Gemini 2.0 Flash
+    name: 'OpenRouter - Llama 3.3 70B',
+    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
+    model: 'meta-llama/llama-3.3-70b-instruct:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter2: {
+    name: 'OpenRouter - Mistral Small 3.1',
+    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
+    model: 'mistralai/mistral-small-3.1-24b-instruct:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter3: {
+    name: 'OpenRouter - Hermes 3 405B',
+    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
+    model: 'nousresearch/hermes-3-llama-3.1-405b:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter4: {
+    name: 'OpenRouter - Gemini 2.0 Flash',
+    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
+    model: 'google/gemini-2.0-flash-exp:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter5: {
+    name: 'OpenRouter - Gemma 3 27B',
+    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
+    model: 'google/gemma-3-27b-it:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter6: {
+    name: 'OpenRouter - Qwen3 235B',
+    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
+    model: 'qwen/qwen3-235b-a22b:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter7: {
+    name: 'OpenRouter - DeepSeek V3.1',
+    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
+    model: 'nex-agi/deepseek-v3.1-nex-n1:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter8: {
+    name: 'OpenRouter - Devstral 2512',
+    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
+    model: 'mistralai/devstral-2512:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter9: {
+    name: 'OpenRouter - Trinity Mini',
+    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
+    model: 'arcee-ai/trinity-mini:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter10: {
+    name: 'OpenRouter - Llama 3.2 3B',
+    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
+    model: 'meta-llama/llama-3.2-3b-instruct:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter11: {
+    name: 'OpenRouter - Mistral 7B',
+    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
+    model: 'mistralai/mistral-7b-instruct:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter12: {
+    name: 'OpenRouter - Gemma 3 12B',
+    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
+    model: 'google/gemma-3-12b-it:free',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
     maxTokens: 4000,
     temperature: 0.7
   }
 };
 
-// Default provider - prioritize free and reliable ones
-export const DEFAULT_PROVIDER = 'google'; // Gemini is free and reliable
+// Default provider - prioritize free OpenRouter models
+export const DEFAULT_PROVIDER = 'openrouter'; // Start with first OpenRouter model
+
+// Provider rotation for avoiding rate limits
+let currentProviderIndex = 0;
+const OPENROUTER_PROVIDERS = [
+  'openrouter', 'openrouter2', 'openrouter3', 'openrouter4', 
+  'openrouter5', 'openrouter6', 'openrouter7', 'openrouter8',
+  'openrouter9', 'openrouter10', 'openrouter11', 'openrouter12'
+];
+
+/**
+ * Get next OpenRouter provider in rotation
+ */
+export const getNextOpenRouterProvider = (): string => {
+  const provider = OPENROUTER_PROVIDERS[currentProviderIndex];
+  currentProviderIndex = (currentProviderIndex + 1) % OPENROUTER_PROVIDERS.length;
+  return provider;
+};
 
 /**
  * Get available AI provider with API key
- * Priority: google (gemini) > groq > openai > others
+ * DEVELOPMENT MODE: No limits, cycle through all free OpenRouter models
  */
 export const getAvailableProvider = (): AIProvider | null => {
-  // Priority order: avoid rate-limited providers first
-  const priorityOrder = ['openai', 'groq', 'aiml', 'chute', 'google'];
+  // First try to get a rotating OpenRouter provider
+  const nextOpenRouter = getNextOpenRouterProvider();
+  const openRouterProvider = AI_PROVIDERS[nextOpenRouter];
   
-  // Try priority providers first
-  for (const key of priorityOrder) {
+  if (openRouterProvider && openRouterProvider.apiKey && openRouterProvider.apiKey !== '' && openRouterProvider.apiKey !== 'YOUR_API_KEY_HERE') {
+    console.log(`✅ Using rotated AI provider: ${openRouterProvider.name} (${openRouterProvider.model})`);
+    return openRouterProvider;
+  }
+  
+  // Fallback to other providers if OpenRouter is not available
+  const fallbackOrder = ['groq', 'aiml', 'chute', 'google', 'openai'];
+  
+  for (const key of fallbackOrder) {
     const provider = AI_PROVIDERS[key];
     if (provider && provider.apiKey && provider.apiKey !== '' && provider.apiKey !== 'YOUR_API_KEY_HERE') {
-      console.log(`✅ Using AI provider: ${provider.name}`);
+      console.log(`✅ Using fallback AI provider: ${provider.name}`);
       return provider;
     }
   }
   
-  // Fallback to any available provider
+  // Last resort: try any available provider
   for (const [, provider] of Object.entries(AI_PROVIDERS)) {
     if (provider.apiKey && provider.apiKey !== '' && provider.apiKey !== 'YOUR_API_KEY_HERE') {
-      console.log(`✅ Using AI provider: ${provider.name}`);
+      console.log(`✅ Using any available AI provider: ${provider.name}`);
       return provider;
     }
   }
   
   console.error('❌ No AI provider available with valid API key');
+  return null;
+};
+
+/**
+ * Get specific provider by name (for manual selection)
+ */
+export const getProviderByName = (providerName: string): AIProvider | null => {
+  const provider = AI_PROVIDERS[providerName];
+  if (provider && provider.apiKey && provider.apiKey !== '' && provider.apiKey !== 'YOUR_API_KEY_HERE') {
+    console.log(`✅ Using specific AI provider: ${provider.name} (${provider.model})`);
+    return provider;
+  }
+  return null;
+};
+
+/**
+ * Get next available provider when current one fails
+ * This ensures we always have a backup when hitting rate limits
+ */
+export const getNextAvailableProvider = (failedProvider?: string): AIProvider | null => {
+  // If an OpenRouter provider failed, try the next one in rotation
+  if (failedProvider && failedProvider.startsWith('openrouter')) {
+    console.log(`🔄 OpenRouter provider ${failedProvider} failed, trying next in rotation...`);
+    
+    // Try next few OpenRouter providers
+    for (let i = 0; i < OPENROUTER_PROVIDERS.length; i++) {
+      const nextProvider = getNextOpenRouterProvider();
+      if (nextProvider !== failedProvider) {
+        const provider = AI_PROVIDERS[nextProvider];
+        if (provider && provider.apiKey && provider.apiKey !== '' && provider.apiKey !== 'YOUR_API_KEY_HERE') {
+          console.log(`✅ Switched to OpenRouter provider: ${provider.name} (${provider.model})`);
+          return provider;
+        }
+      }
+    }
+  }
+  
+  // Fallback to non-OpenRouter providers
+  const fallbackOrder = ['groq', 'aiml', 'chute', 'google', 'openai'];
+  
+  for (const key of fallbackOrder) {
+    if (key === failedProvider) continue; // Skip the failed provider
+    
+    const provider = AI_PROVIDERS[key];
+    if (provider && provider.apiKey && provider.apiKey !== '' && provider.apiKey !== 'YOUR_API_KEY_HERE') {
+      console.log(`✅ Using fallback AI provider: ${provider.name}`);
+      return provider;
+    }
+  }
+  
+  console.error('❌ No alternative AI provider available');
   return null;
 };
 
@@ -134,6 +298,17 @@ export function formatRequest(provider: string, prompt: string): any {
     case 'aiml':
     case 'chute':
     case 'openrouter':
+    case 'openrouter2':
+    case 'openrouter3':
+    case 'openrouter4':
+    case 'openrouter5':
+    case 'openrouter6':
+    case 'openrouter7':
+    case 'openrouter8':
+    case 'openrouter9':
+    case 'openrouter10':
+    case 'openrouter11':
+    case 'openrouter12':
       // OpenAI-compatible format
       return {
         model: AI_PROVIDERS[provider].model,
@@ -197,6 +372,17 @@ export function parseResponse(provider: string, response: any): AIResponse {
     case 'aiml':
     case 'chute':
     case 'openrouter':
+    case 'openrouter2':
+    case 'openrouter3':
+    case 'openrouter4':
+    case 'openrouter5':
+    case 'openrouter6':
+    case 'openrouter7':
+    case 'openrouter8':
+    case 'openrouter9':
+    case 'openrouter10':
+    case 'openrouter11':
+    case 'openrouter12':
       // OpenAI-compatible response format
       return {
         content: response.choices[0]?.message?.content || '',
@@ -256,6 +442,19 @@ export function parseResponse(provider: string, response: any): AIResponse {
 export function handleProviderError(provider: string, error: any): Error {
   const errorMessage = error?.error?.message || error?.message || 'Unknown error occurred';
   
+  // Handle OpenRouter providers (all use same error handling)
+  if (provider.startsWith('openrouter')) {
+    if (error?.error?.code === 'invalid_api_key') {
+      return new Error('Invalid OpenRouter API key. Please check your configuration.');
+    }
+    if (error?.error?.code === 'insufficient_quota' || error?.status === 429) {
+      return new Error(`OpenRouter model ${AI_PROVIDERS[provider]?.model} daily limit reached. Trying next model...`);
+    }
+    if (error?.error?.code === 'model_not_found') {
+      return new Error(`OpenRouter model ${AI_PROVIDERS[provider]?.model} not available. Trying next model...`);
+    }
+  }
+  
   switch (provider) {
     case 'openai':
       if (error?.error?.code === 'insufficient_quota') {
@@ -300,19 +499,23 @@ export function handleProviderError(provider: string, error: any): Error {
   return new Error(`${AI_PROVIDERS[provider]?.name || 'AI'} API Error: ${errorMessage}`);
 }
 
-// Rate limiting and retry logic
+// DEVELOPMENT MODE: No rate limiting during development phase
 export const RATE_LIMITS = {
-  openai: { requestsPerMinute: 60, tokensPerMinute: 90000 },
-  anthropic: { requestsPerMinute: 50, tokensPerMinute: 40000 },
-  google: { requestsPerMinute: 60, tokensPerMinute: 32000 },
-  grok: { requestsPerMinute: 60, tokensPerMinute: 100000 },
-  qubrid: { requestsPerMinute: 60, tokensPerMinute: 50000 },
-  openrouter: { requestsPerMinute: 200, tokensPerMinute: 1000000 } // Free models, generous limits
+  // All limits removed for development - user requested no limits during dev phase
+  openai: { requestsPerMinute: Infinity, tokensPerMinute: Infinity },
+  anthropic: { requestsPerMinute: Infinity, tokensPerMinute: Infinity },
+  google: { requestsPerMinute: Infinity, tokensPerMinute: Infinity },
+  grok: { requestsPerMinute: Infinity, tokensPerMinute: Infinity },
+  qubrid: { requestsPerMinute: Infinity, tokensPerMinute: Infinity },
+  openrouter: { requestsPerMinute: Infinity, tokensPerMinute: Infinity },
+  groq: { requestsPerMinute: Infinity, tokensPerMinute: Infinity },
+  aiml: { requestsPerMinute: Infinity, tokensPerMinute: Infinity },
+  chute: { requestsPerMinute: Infinity, tokensPerMinute: Infinity }
 };
 
 export function shouldRetry(_provider: string, error: any): boolean {
+  // In development mode, only retry on server errors, not rate limits
   const retryableErrors = [
-    'rate_limit_exceeded',
     'timeout',
     'connection_error',
     'temporary_error'
@@ -324,6 +527,6 @@ export function shouldRetry(_provider: string, error: any): boolean {
 }
 
 export function getRetryDelay(attemptNumber: number): number {
-  // Exponential backoff: 1s, 2s, 4s, 8s, 16s
-  return Math.min(1000 * Math.pow(2, attemptNumber), 16000);
+  // Faster retry in development: 0.5s, 1s, 2s, 4s, 8s
+  return Math.min(500 * Math.pow(2, attemptNumber), 8000);
 }
