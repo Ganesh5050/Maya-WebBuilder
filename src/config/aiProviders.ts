@@ -204,25 +204,27 @@ export const getNextOpenRouterProvider = (): string => {
 
 /**
  * Get available AI provider with API key
- * DEVELOPMENT MODE: No limits, cycle through all free OpenRouter models
+ * DEVELOPMENT MODE: Prioritize providers with available quota
  */
 export const getAvailableProvider = (): AIProvider | null => {
-  // First try to get a rotating OpenRouter provider
-  const nextOpenRouter = getNextOpenRouterProvider();
-  const openRouterProvider = AI_PROVIDERS[nextOpenRouter];
+  // PRIORITY ORDER: Use providers with available quota first
+  // OpenRouter free models are exhausted (50 requests/day limit hit)
+  // Use Google Gemini, Groq, AIML, Chute which still have quota
   
-  if (openRouterProvider && openRouterProvider.apiKey && openRouterProvider.apiKey !== '' && openRouterProvider.apiKey !== 'YOUR_API_KEY_HERE') {
-    console.log(`✅ Using rotated AI provider: ${openRouterProvider.name} (${openRouterProvider.model})`);
-    return openRouterProvider;
-  }
+  const priorityOrder = [
+    'google',  // Google Gemini - free and reliable
+    'groq',    // Groq - fast and free
+    'aiml',    // AIML API - has quota
+    'chute',   // Chute AI - backup
+    'openrouter8', // Try Devstral (was working earlier)
+    'openrouter9', 'openrouter10', 'openrouter11', 'openrouter12', // Try newer models
+    'openrouter', 'openrouter2', 'openrouter3', 'openrouter4', 'openrouter5', 'openrouter6', 'openrouter7'
+  ];
   
-  // Fallback to other providers if OpenRouter is not available
-  const fallbackOrder = ['groq', 'aiml', 'chute', 'google', 'openai'];
-  
-  for (const key of fallbackOrder) {
+  for (const key of priorityOrder) {
     const provider = AI_PROVIDERS[key];
     if (provider && provider.apiKey && provider.apiKey !== '' && provider.apiKey !== 'YOUR_API_KEY_HERE') {
-      console.log(`✅ Using fallback AI provider: ${provider.name}`);
+      console.log(`✅ Using AI provider: ${provider.name} (${provider.model || 'default'})`);
       return provider;
     }
   }
