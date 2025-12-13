@@ -40,10 +40,20 @@ export class E2BService {
       });
 
       console.log('🚀 Creating E2B sandbox...');
+      // Create sandbox with longer timeout (10 minutes = 600000ms)
+      // E2B free tier allows up to 1 hour sandbox lifetime
       this.sandbox = await Sandbox.create({
         apiKey: this.apiKey,
-        timeoutMs: 60000
+        timeoutMs: 600000 // 10 minutes timeout for sandbox to stay alive
       });
+      
+      // Set sandbox timeout to maximum (1 hour for free tier)
+      try {
+        await this.sandbox.setTimeout(3600000); // 1 hour
+        console.log('✅ Sandbox timeout extended to 1 hour');
+      } catch (e) {
+        console.log('⚠️ Could not extend sandbox timeout:', e);
+      }
 
       console.log('✅ Sandbox created:', this.sandbox.sandboxId);
       this.updateStatus({
