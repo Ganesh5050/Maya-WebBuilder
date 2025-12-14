@@ -106,8 +106,8 @@ class AIAssistantService {
   private apiKey: string;
   
   constructor() {
-    // Use one of the provided API keys
-    this.apiKey = 'sk-proj-2TlPnQyF8fXJ4K3mV9rH6tY5uI7wOpQsR1zX3cV8bN5mF2jK4lP6qW9eY3tA7';
+    // Use environment variable for API key
+    this.apiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
   }
 
   async discussCode(context: {

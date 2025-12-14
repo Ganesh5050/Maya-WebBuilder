@@ -625,7 +625,7 @@ import { E2BPreview } from '../components/E2BPreview';
 ## 🚀 NEXT STEPS
 
 1. **Get E2B API Key** from https://e2b.dev
-2. **Add to .env**: `VITE_E2B_API_KEY=your_key`
+2. **Add to .env**: `VITE_E2B_API_KEY=your_key_here`
 3. **Install dependencies**: `npm install @e2b/code-interpreter`
 4. **Create files** in order (Step 1-5)
 5. **Test thoroughly** with checklist
