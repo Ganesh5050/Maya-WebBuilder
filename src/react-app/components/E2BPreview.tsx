@@ -24,6 +24,7 @@ export function E2BPreview({
   const [showError, setShowError] = useState(false);
   const [iframeError, setIframeError] = useState(false);
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
 
   useEffect(() => {
     if (previewURL) {
@@ -209,6 +210,13 @@ export function E2BPreview({
           {!iframeLoaded && (
             <span className="text-xs text-gray-500">Loading...</span>
           )}
+          <button
+            onClick={() => setShowDebug(!showDebug)}
+            className="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded"
+            title="Toggle debug info"
+          >
+            Debug
+          </button>
           <a 
             href={previewURL} 
             target="_blank" 
@@ -219,6 +227,21 @@ export function E2BPreview({
           </a>
         </div>
       </div>
+      
+      {/* Debug Panel */}
+      {showDebug && (
+        <div className="p-3 bg-yellow-50 border-b text-xs font-mono">
+          <div><strong>Project ID:</strong> {projectId}</div>
+          <div><strong>Preview URL:</strong> {previewURL || 'None'}</div>
+          <div><strong>Status:</strong> {status}</div>
+          <div><strong>Files:</strong> {generatedFiles.length}</div>
+          <div><strong>Iframe Loaded:</strong> {iframeLoaded ? 'Yes' : 'No'}</div>
+          <div><strong>Iframe Error:</strong> {iframeError ? 'Yes' : 'No'}</div>
+          {previewURL && (
+            <div><strong>Sandbox ID:</strong> {previewURL.match(/https:\/\/5173-(.+?)\.e2b\.app/)?.[1] || 'Unknown'}</div>
+          )}
+        </div>
+      )}
       
       {/* Preview iframe */}
       <iframe

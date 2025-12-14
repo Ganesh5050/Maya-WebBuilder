@@ -17,6 +17,7 @@ export class SandboxManager {
   private apiKey: string;
   private statusCallbacks: Map<string, (status: SandboxStatus) => void> = new Map();
   private cleanupInterval: NodeJS.Timeout | null = null;
+  private currentSandboxId: string | null = null; // Track current active sandbox
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -44,20 +45,20 @@ export class SandboxManager {
     files: ProjectFile[]
   ): Promise<ManagedSandbox> {
     try {
-      // Check if sandbox already exists for this project
+      // CRITICAL: Always cleanup existing sandbox first to prevent state mismatch
       const existingSandbox = this.sandboxes.get(projectId);
       if (existingSandbox) {
-        console.log(`♻️ Reusing existing sandbox for project: ${projectId}`);
-        return existingSandbox;
+        console.log(`🧹 Cleaning up existing sandbox for project: ${projectId} to prevent state mismatch`);
+        await this.cleanupSandbox(projectId);
       }
 
       // Clean up old sandboxes if we have too many
-      if (this.sandboxes.size >= 3) {
+      if (this.sandboxes.size >= 2) {
         console.log('🧹 Too many sandboxes, cleaning up oldest ones...');
         await this.cleanupOldSandboxes();
       }
 
-      console.log(`🚀 Creating managed sandbox for project: ${projectId}`);
+      console.log(`🚀 Creating NEW managed sandbox for project: ${projectId}`);
 
       const statusCallback = this.statusCallbacks.get(projectId);
 
@@ -66,6 +67,15 @@ export class SandboxManager {
 
       // Create sandbox
       await e2bService.createSandbox();
+      const newSandboxId = e2bService.getSandboxId();
+      
+      if (!newSandboxId) {
+        throw new Error('Failed to get sandbox ID after creation');
+      }
+
+      // Update current sandbox tracking
+      this.currentSandboxId = newSandboxId;
+      console.log(`🎯 Current sandbox ID set to: ${newSandboxId}`);
 
       // Mount files
       await e2bService.mountFiles(files);
@@ -79,10 +89,10 @@ export class SandboxManager {
       // Create managed sandbox object
       const managedSandbox: ManagedSandbox = {
         projectId,
-        sandboxId: e2bService.getSandboxId() || 'unknown',
+        sandboxId: newSandboxId,
         previewURL,
         status: {
-          id: e2bService.getSandboxId() || 'unknown',
+          id: newSandboxId,
           status: 'ready',
           message: '✅ Sandbox ready',
           previewURL
@@ -95,6 +105,7 @@ export class SandboxManager {
       this.sandboxes.set(projectId, managedSandbox);
 
       console.log(`✅ Managed sandbox created for project: ${projectId}`);
+      console.log(`📍 Sandbox ID: ${newSandboxId}`);
       console.log(`📍 Preview URL: ${previewURL}`);
 
       return managedSandbox;
@@ -128,6 +139,34 @@ export class SandboxManager {
     return managedSandbox?.service.getSandbox() || null;
   }
 
+  // NEW: Get current sandbox for state synchronization
+  getCurrentSandbox(): ManagedSandbox | null {
+    if (!this.currentSandboxId) return null;
+    
+    // Find sandbox by current ID
+    for (const sandbox of this.sandboxes.values()) {
+      if (sandbox.sandboxId === this.currentSandboxId) {
+        return sandbox;
+      }
+    }
+    return null;
+  }
+
+  // NEW: Get or create sandbox with proper state sync
+  async getOrCreateSandbox(projectId: string, files: ProjectFile[]): Promise<ManagedSandbox> {
+    const existing = this.sandboxes.get(projectId);
+    
+    // If we have an existing sandbox and it matches current sandbox ID, reuse it
+    if (existing && existing.sandboxId === this.currentSandboxId) {
+      console.log(`♻️ Reusing existing sandbox: ${existing.sandboxId}`);
+      return existing;
+    }
+    
+    // Otherwise create new sandbox (this will cleanup existing ones)
+    console.log(`🔄 Creating new sandbox (current: ${this.currentSandboxId})`);
+    return await this.createManagedSandbox(projectId, files);
+  }
+
   async executeCommand(projectId: string, command: string): Promise<{ stdout: string; stderr: string }> {
     const sandbox = this.sandboxes.get(projectId);
     if (!sandbox) {
@@ -140,7 +179,14 @@ export class SandboxManager {
   async cleanupSandbox(projectId: string): Promise<void> {
     const sandbox = this.sandboxes.get(projectId);
     if (sandbox) {
-      console.log(`🧹 Cleaning up sandbox for project: ${projectId}`);
+      console.log(`🧹 Cleaning up sandbox for project: ${projectId} (ID: ${sandbox.sandboxId})`);
+      
+      // Clear current sandbox ID if this is the current one
+      if (this.currentSandboxId === sandbox.sandboxId) {
+        this.currentSandboxId = null;
+        console.log(`🎯 Cleared current sandbox ID`);
+      }
+      
       await sandbox.service.cleanup();
       this.sandboxes.delete(projectId);
       this.statusCallbacks.delete(projectId);
@@ -162,6 +208,10 @@ export class SandboxManager {
 
   async cleanupAll(): Promise<void> {
     console.log('🧹 Cleaning up all sandboxes...');
+    
+    // Clear current sandbox tracking
+    this.currentSandboxId = null;
+    
     const cleanupPromises = Array.from(this.sandboxes.entries()).map(async ([projectId, sandbox]) => {
       try {
         await sandbox.service.cleanup();
@@ -188,6 +238,79 @@ export class SandboxManager {
 
   getAllSandboxes(): ManagedSandbox[] {
     return Array.from(this.sandboxes.values());
+  }
+
+  // NUCLEAR OPTION: Single sandbox approach
+  async createSingleSandbox(
+    projectId: string,
+    files: ProjectFile[]
+  ): Promise<ManagedSandbox> {
+    try {
+      console.log('🔥 NUCLEAR OPTION: Creating single sandbox, cleaning up ALL existing sandboxes first');
+      
+      // Clean up ALL existing sandboxes first
+      await this.cleanupAll();
+      
+      // Wait for cleanup to complete
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      console.log(`🚀 Creating SINGLE managed sandbox for project: ${projectId}`);
+
+      const statusCallback = this.statusCallbacks.get(projectId);
+
+      // Create E2B service
+      const e2bService = new E2BService(this.apiKey, statusCallback);
+
+      // Create sandbox
+      await e2bService.createSandbox();
+      const newSandboxId = e2bService.getSandboxId();
+      
+      if (!newSandboxId) {
+        throw new Error('Failed to get sandbox ID after creation');
+      }
+
+      // Update current sandbox tracking
+      this.currentSandboxId = newSandboxId;
+      console.log(`🎯 SINGLE sandbox ID set to: ${newSandboxId}`);
+
+      // Mount files
+      await e2bService.mountFiles(files);
+
+      // Install dependencies
+      await e2bService.installDependencies();
+
+      // Start dev server
+      const previewURL = await e2bService.startDevServer();
+
+      // Create managed sandbox object
+      const managedSandbox: ManagedSandbox = {
+        projectId,
+        sandboxId: newSandboxId,
+        previewURL,
+        status: {
+          id: newSandboxId,
+          status: 'ready',
+          message: '✅ Single sandbox ready',
+          previewURL
+        },
+        service: e2bService,
+        createdAt: Date.now()
+      };
+
+      // Store reference (should be the only one)
+      this.sandboxes.set(projectId, managedSandbox);
+
+      console.log(`✅ SINGLE managed sandbox created for project: ${projectId}`);
+      console.log(`📍 Sandbox ID: ${newSandboxId}`);
+      console.log(`📍 Preview URL: ${previewURL}`);
+      console.log(`📊 Total sandboxes: ${this.sandboxes.size} (should be 1)`);
+
+      return managedSandbox;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`❌ Failed to create single sandbox: ${errorMsg}`);
+      throw error;
+    }
   }
 }
 

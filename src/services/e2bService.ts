@@ -40,12 +40,23 @@ export class E2BService {
       });
 
       console.log('🚀 Creating E2B sandbox...');
+      
+      // Cleanup any existing sandbox first
+      if (this.sandbox) {
+        console.log('🧹 Cleaning up existing sandbox before creating new one');
+        await this.cleanup();
+      }
+      
       // Create sandbox with longer timeout (10 minutes = 600000ms)
       // E2B free tier allows up to 1 hour sandbox lifetime
       this.sandbox = await Sandbox.create({
         apiKey: this.apiKey,
         timeoutMs: 600000 // 10 minutes timeout for sandbox to stay alive
       });
+      
+      if (!this.sandbox.sandboxId) {
+        throw new Error('Sandbox created but no ID returned');
+      }
       
       // Set sandbox timeout to maximum (1 hour for free tier)
       try {
@@ -55,7 +66,7 @@ export class E2BService {
         console.log('⚠️ Could not extend sandbox timeout:', e);
       }
 
-      console.log('✅ Sandbox created:', this.sandbox.sandboxId);
+      console.log('✅ Sandbox created with ID:', this.sandbox.sandboxId);
       this.updateStatus({
         id: this.sandbox.sandboxId,
         status: 'creating',
@@ -199,6 +210,13 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: true,
+    cors: true,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'X-Frame-Options': 'ALLOWALL'
+    },
     hmr: {
       port: 5173
     }
@@ -206,7 +224,12 @@ export default defineConfig({
   preview: {
     host: '0.0.0.0',
     port: 5173,
-    strictPort: true
+    strictPort: true,
+    cors: true,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'X-Frame-Options': 'ALLOWALL'
+    }
   }
 })`;
 
@@ -313,10 +336,12 @@ export default defineConfig({
 
   async getPreviewURL(): Promise<string> {
     if (!this.sandbox) throw new Error('Sandbox not initialized');
+    if (!this.sandbox.sandboxId) throw new Error('Sandbox ID not available');
 
     try {
       // Construct preview URL with correct E2B domain format
       const url = `https://5173-${this.sandbox.sandboxId}.e2b.app`;
+      console.log(`🔗 Generated preview URL: ${url} for sandbox: ${this.sandbox.sandboxId}`);
       return url;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';

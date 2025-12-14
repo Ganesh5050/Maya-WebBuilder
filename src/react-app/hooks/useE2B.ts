@@ -45,15 +45,19 @@ export function useE2B(projectId: string, files: ProjectFile[]): UseE2BReturn {
 
       // Register status callback
       manager.registerStatusCallback(projectId, (status: SandboxStatus) => {
+        console.log(`📊 Status update for ${projectId}: ${status.message} (ID: ${status.id})`);
         setStatus(status.message);
         if (status.previewURL) {
+          console.log(`🎯 Setting preview URL: ${status.previewURL}`);
           setPreviewURL(status.previewURL);
         }
       });
 
-      setStatus('Creating sandbox...');
-      const managedSandbox = await manager.createManagedSandbox(projectId, files);
+      setStatus('Creating single sandbox...');
+      // NUCLEAR OPTION: Use single sandbox approach to prevent state mismatch
+      const managedSandbox = await manager.createSingleSandbox(projectId, files);
 
+      console.log(`✅ Sandbox ready - ID: ${managedSandbox.sandboxId}, URL: ${managedSandbox.previewURL}`);
       setStatus('Ready!');
       setPreviewURL(managedSandbox.previewURL);
       setIsLoading(false);
