@@ -17,10 +17,10 @@ import SettingsTabContent from '../components/SettingsTabContent';
 import { reactProjectGenerator } from '../../services/reactGenerator';
 import { vercelDeploymentService } from '../../services/deploymentService';
 import JSZip from 'jszip';
-import { E2BPreview } from '../components/E2BPreview';
+import { WebContainerPreview } from '../components/WebContainerPreview';
 import { Terminal } from '../components/Terminal';
 import { useTerminal } from '../hooks/useTerminal';
-import { getSandboxManager } from '../../services/sandboxManager';
+import { getWebContainerManager } from '../../services/webcontainerManager';
 import { FileExplorer } from '../components/FileExplorer';
 import { CodeEditor } from '../components/CodeEditor';
 import { useFileManager } from '../hooks/useFileManager';
@@ -91,30 +91,33 @@ export default function AppBuilder() {
     });
   }, [terminal]);
 
-  // Connect terminal and file manager when E2B sandbox is ready
+  // Connect terminal and file manager when WebContainer is ready
   useEffect(() => {
     const connectServices = async () => {
-      if (generatedWebsite === 'REACT_PROJECT_E2B_PREVIEW' && projectFiles.length > 0) {
+      if (generatedWebsite === 'REACT_PROJECT_WEBCONTAINER_PREVIEW' && projectFiles.length > 0) {
         try {
-          console.log('🔌 Attempting to connect services to E2B sandbox...');
-          const sandboxManager = getSandboxManager();
+          console.log('🔌 Attempting to connect services to WebContainer...');
+          const containerManager = getWebContainerManager();
           
-          // Wait a bit for the sandbox to be fully ready
+          // Wait a bit for the container to be fully ready
           setTimeout(async () => {
             try {
-              const e2bSandbox = await sandboxManager.getE2BSandbox(appId || 'default');
+              const container = await containerManager.getContainer(appId || 'default');
               
-              if (e2bSandbox) {
-                console.log('✅ Found E2B sandbox, connecting services...');
+              if (container) {
+                console.log('✅ Found WebContainer, connecting services...');
                 
                 // Connect terminal
                 if (!terminal.isConnected && !terminal.isConnecting) {
-                  await terminal.connect(e2bSandbox, {
-                    cols: 80,
-                    rows: 24,
-                    cwd: '/home/user'
-                  });
-                  console.log('🎉 Terminal connected successfully!');
+                  const webContainer = container.service.getContainer();
+                  if (webContainer) {
+                    await terminal.connect(webContainer, {
+                      cols: 80,
+                      rows: 24,
+                      cwd: '/home/user'
+                    });
+                    console.log('🎉 Terminal connected successfully!');
+                  }
                 }
                 
                 // Connect file manager
@@ -123,14 +126,14 @@ export default function AppBuilder() {
                   console.log('🎉 File manager connected successfully!');
                 }
               } else {
-                console.log('⏳ E2B sandbox not ready yet, will retry...');
+                console.log('⏳ WebContainer not ready yet, will retry...');
               }
             } catch (error) {
               console.error('❌ Failed to connect services:', error);
             }
-          }, 5000); // Wait 5 seconds for sandbox to be ready
+          }, 5000); // Wait 5 seconds for container to be ready
         } catch (error) {
-          console.error('❌ Failed to get sandbox for services:', error);
+          console.error('❌ Failed to get container manager:', error);
         }
       }
     };
@@ -526,8 +529,8 @@ export default function AppBuilder() {
         // The E2BPreview component will handle the sandbox creation and preview
         console.log('🚀 React project ready for E2B preview');
         
-        // Set a placeholder that will be replaced by E2B preview
-        setGeneratedWebsite('REACT_PROJECT_E2B_PREVIEW');
+        // Set a placeholder that will be replaced by WebContainer preview
+        setGeneratedWebsite('REACT_PROJECT_WEBCONTAINER_PREVIEW');
         
         // Create a simple HTML preview for database storage
         const previewHtml = `<!DOCTYPE html>
@@ -1282,22 +1285,22 @@ export default function AppBuilder() {
                       )}
                       
                       {/* Live React Preview */}
-                      {generatedWebsite === 'REACT_PROJECT_E2B_PREVIEW' && projectFiles.length > 0 ? (
-                        // E2B Preview for React projects
+                      {generatedWebsite === 'REACT_PROJECT_WEBCONTAINER_PREVIEW' && projectFiles.length > 0 ? (
+                        // WebContainer Preview for React projects
                         <div className={`${
                           previewMode === 'mobile' 
                             ? 'w-[375px] h-[667px] mx-auto rounded-[22px] shadow-xl overflow-hidden' 
                             : 'w-full h-full'
                         }`}>
-                          <E2BPreview
+                          <WebContainerPreview
                             projectId={appId || 'default'}
                             generatedFiles={projectFiles.map(f => ({ path: f.path, content: f.content }))}
                             onReady={(url) => {
-                              console.log('🎉 E2B Preview ready:', url);
+                              console.log('🎉 WebContainer Preview ready:', url);
                             }}
                             onError={(error) => {
-                              console.error('❌ E2B Preview error:', error);
-                              setLastError({ message: error.message, prompt: 'E2B Preview' });
+                              console.error('❌ WebContainer Preview error:', error);
+                              setLastError({ message: error.message, prompt: 'WebContainer Preview' });
                               setShowErrorModal(true);
                             }}
                           />
