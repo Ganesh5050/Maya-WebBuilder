@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Gift, MessageSquare, FileText, Sun, Volume2, Bell, Command, MessageCircle, LogOut, Moon, X, Crown } from 'lucide-react';
+import { ChevronDown, Gift, MessageSquare, FileText, Sun, Volume2, Bell, Command, MessageCircle, LogOut, Moon, X, Crown, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router';
 
@@ -22,16 +22,16 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
   // Get user display information
   const getUserDisplayName = () => {
     if (!user) return 'Guest';
-    
+
     // Try to get user's full name from user metadata
     const fullName = user.user_metadata?.full_name;
     const firstName = user.user_metadata?.first_name;
     const lastName = user.user_metadata?.last_name;
-    
+
     if (fullName) return fullName;
     if (firstName && lastName) return `${firstName} ${lastName}`;
     if (firstName) return firstName;
-    
+
     // Fallback to email
     return user.email || 'Guest';
   };
@@ -127,7 +127,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
           boxShadow: 'rgba(0, 0, 0, 0.05) 0px 0.706592px 0.706592px -0.583333px, rgba(0, 0, 0, 0.04) 0px 1.80656px 1.80656px -1.16667px, rgba(0, 0, 0, 0.03) 0px 3.62176px 3.62176px -1.75px, rgba(0, 0, 0, 0.02) 0px 6.8656px 6.8656px -2.33333px, rgba(0, 0, 0, 0.01) 0px 13.6468px 13.6468px -2.91667px'
         }}
       >
-        <div 
+        <div
           className="w-8 h-8 rounded-full flex items-center justify-center relative overflow-hidden"
           style={{
             backgroundColor: 'rgb(0, 0, 0)',
@@ -150,7 +150,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div 
+        <div
           className="absolute left-0 top-full mt-2 w-80 py-2 z-50"
           style={{
             backgroundColor: 'white',
@@ -161,7 +161,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
           {/* User Info Header */}
           <div className="px-4 py-3 border-b border-gray-100">
             <div className="flex items-center space-x-3">
-              <div 
+              <div
                 className="w-10 h-10 rounded-full flex items-center justify-center relative overflow-hidden"
                 style={{
                   backgroundColor: 'rgb(0, 0, 0)',
@@ -180,7 +180,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
 
           {/* Get Free Credits */}
           <div className="px-4 py-3 border-b border-gray-100">
-            <button 
+            <button
               onClick={handleGetFreeCredits}
               className="flex items-center space-x-3 w-full text-left p-2 rounded-lg transition-all duration-200 hover:opacity-90"
               style={{
@@ -201,7 +201,22 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
 
           {/* Menu Items */}
           <div className="py-2">
-            <button 
+            <button
+              onClick={() => navigate('/profile')}
+              className="flex items-center space-x-3 px-4 py-3 text-sm font-medium text-gray-700 transition-all duration-200 hover:opacity-90 w-full text-left mb-1"
+              style={{
+                backgroundColor: 'rgb(245, 245, 245)',
+                borderRadius: '8px',
+                boxShadow: 'rgba(0, 0, 0, 0.05) 0px 0.706592px 0.706592px -0.583333px, rgba(0, 0, 0, 0.04) 0px 1.80656px 1.80656px -1.16667px, rgba(0, 0, 0, 0.03) 0px 3.62176px 3.62176px -1.75px, rgba(0, 0, 0, 0.02) 0px 6.8656px 6.8656px -2.33333px, rgba(0, 0, 0, 0.01) 0px 13.6468px 13.6468px -2.91667px'
+              }}
+            >
+              <div className="w-4 h-4">
+                <User className="w-4 h-4" />
+              </div>
+              <span>Account Settings</span>
+            </button>
+
+            <button
               onClick={handleUpgradeToPro}
               className="flex items-center space-x-3 px-4 py-3 text-sm font-medium text-gray-700 transition-all duration-200 hover:opacity-90 w-full text-left"
               style={{
@@ -216,7 +231,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
               <span>Upgrade to Pro</span>
             </button>
 
-            <button 
+            <button
               className="flex items-center space-x-3 px-4 py-3 text-sm font-medium text-gray-700 transition-all duration-200 hover:opacity-90 w-full text-left mt-1"
               style={{
                 backgroundColor: 'rgb(245, 245, 245)',
@@ -228,7 +243,8 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
               <span>Join our Discord</span>
             </button>
 
-            <button 
+            <button
+              onClick={() => navigate('/docs')}
               className="flex items-center space-x-3 px-4 py-3 text-sm font-medium text-gray-700 transition-all duration-200 hover:opacity-90 w-full text-left mt-1"
               style={{
                 backgroundColor: 'rgb(245, 245, 245)',
@@ -243,7 +259,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
 
           {/* Settings Section */}
           <div className="border-t border-gray-100 py-2">
-            <button 
+            <button
               onClick={handleToggleTheme}
               className="flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 transition-all duration-200 hover:opacity-90 w-full text-left"
               style={{
@@ -258,7 +274,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
               </div>
             </button>
 
-            <button 
+            <button
               onClick={handleToggleSound}
               className="flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 transition-all duration-200 hover:opacity-90 w-full text-left mt-1"
               style={{
@@ -273,7 +289,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
               </div>
             </button>
 
-            <button 
+            <button
               onClick={handleToggleNotifications}
               className="flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 transition-all duration-200 hover:opacity-90 w-full text-left mt-1"
               style={{
@@ -288,7 +304,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
               </div>
             </button>
 
-            <button 
+            <button
               onClick={handleKeyboardShortcuts}
               className="flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 transition-all duration-200 hover:opacity-90 w-full text-left mt-1"
               style={{
@@ -307,7 +323,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
 
           {/* Bottom Actions */}
           <div className="border-t border-gray-100 py-2">
-            <button 
+            <button
               onClick={handleFeedback}
               className="flex items-center space-x-3 px-4 py-3 text-sm font-medium text-gray-700 transition-all duration-200 hover:opacity-90 w-full text-left"
               style={{
@@ -320,7 +336,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
               <span>Leave feedback</span>
             </button>
 
-            <button 
+            <button
               className="flex items-center space-x-3 px-4 py-3 font-medium transition-all duration-200 hover:opacity-90 w-full text-left mt-1"
               style={{
                 backgroundColor: 'rgb(254, 242, 242)',
@@ -362,7 +378,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
                   </div>
                 </div>
               </div>
-              
+
               <div className="p-4 bg-blue-50 rounded-[10px] border border-blue-200 transition-all duration-200 hover:shadow-md">
                 <div className="flex items-start space-x-3">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -371,7 +387,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
                   <div className="flex-1">
                     <h4 className="font-semibold text-gray-900 mb-1">Refer a Friend</h4>
                     <p className="text-sm text-gray-600 mb-4">Get 50 credits for each friend who signs up</p>
-                    
+
                     <div className="bg-white rounded-lg p-4 border border-gray-200">
                       <div className="flex items-center justify-between mb-3">
                         <div>
@@ -383,12 +399,12 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
                           <p className="text-xs text-gray-500">credits</p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center space-x-2">
                         <div className="flex-1 relative">
-                          <input 
-                            type="text" 
-                            value={getReferralUrl()} 
+                          <input
+                            type="text"
+                            value={getReferralUrl()}
                             readOnly
                             className="w-full text-sm bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 text-gray-700 font-mono pr-20"
                             style={{
@@ -396,7 +412,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
                             }}
                           />
                           <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                            <button 
+                            <button
                               onClick={copyReferralLink}
                               className="px-3 py-1 text-white text-xs font-medium rounded-lg transition-all duration-200 hover:opacity-90"
                               style={{
@@ -409,7 +425,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                         <div className="flex items-center space-x-4">
                           <div className="flex items-center space-x-1">
@@ -426,7 +442,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
                   </div>
                 </div>
               </div>
-              
+
               <div className="p-4 bg-green-50 rounded-[10px] border border-green-200 transition-all duration-200 hover:shadow-md">
                 <div className="flex items-center space-x-3">
                   <div className="w-6 h-6 bg-green-200 rounded-full flex items-center justify-center">
@@ -439,7 +455,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
                 </div>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => setShowCreditsModal(false)}
               className="w-full mt-6 text-white py-3 font-medium transition-all duration-200 hover:opacity-90"
               style={{
@@ -510,7 +526,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
                 >Ctrl + ?</kbd>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => setShowKeyboardShortcuts(false)}
               className="w-full mt-6 text-white py-3 font-medium transition-all duration-200 hover:opacity-90"
               style={{
@@ -555,7 +571,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Your feedback</label>
-                <textarea 
+                <textarea
                   rows={4}
                   className="w-full px-4 py-3 bg-gray-100 rounded-[10px] text-gray-700 placeholder-gray-500 outline-none transition-all duration-200 focus:text-gray-900 resize-none"
                   placeholder="Tell us what you think..."
@@ -566,7 +582,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Email (optional)</label>
-                <input 
+                <input
                   type="email"
                   className="w-full px-4 py-3 bg-gray-100 rounded-[10px] text-gray-700 placeholder-gray-500 outline-none transition-all duration-200 focus:text-gray-900"
                   placeholder="your@email.com"
@@ -577,7 +593,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
               </div>
             </div>
             <div className="flex space-x-3 mt-6">
-              <button 
+              <button
                 onClick={() => setShowFeedbackModal(false)}
                 className="flex-1 px-4 py-3 font-medium transition-all duration-200 hover:opacity-90"
                 style={{
@@ -589,7 +605,7 @@ export default function UserProfileDropdown({ isCollapsed = false }: UserProfile
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={() => {
                   setShowFeedbackModal(false);
                   // Here you would normally submit the feedback

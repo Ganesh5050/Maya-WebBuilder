@@ -40,10 +40,21 @@ export class WebContainerService {
 
       console.log('🚀 Initializing WebContainer with client ID:', this.clientId);
 
-      // Initialize WebContainer
-      this.container = await WebContainer.boot();
+      // Check if WebContainer is supported
+      if (typeof window === 'undefined') {
+        throw new Error('WebContainer requires browser environment');
+      }
 
-      console.log('✅ WebContainer initialized');
+      // Initialize WebContainer with proper configuration
+      this.container = await WebContainer.boot({
+        // Add any configuration options here
+      });
+
+      if (!this.container) {
+        throw new Error('WebContainer failed to initialize - returned null');
+      }
+
+      console.log('✅ WebContainer initialized successfully');
       this.updateStatus({
         id: 'webcontainer',
         status: 'initializing',
@@ -54,10 +65,21 @@ export class WebContainerService {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       console.error('❌ Failed to initialize WebContainer:', errorMsg);
+
+      // Provide specific error messages for common issues
+      let userMessage = '❌ Failed to initialize WebContainer';
+      if (errorMsg.includes('Unable to create more instances')) {
+        userMessage = '❌ WebContainer limit reached. Please wait a few minutes and try again.';
+      } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+        userMessage = '❌ Network error. Check your internet connection.';
+      } else if (errorMsg.includes('domain') || errorMsg.includes('origin')) {
+        userMessage = '❌ Domain not whitelisted. Please add localhost:5173 to WebContainer dashboard.';
+      }
+
       this.updateStatus({
         id: 'error',
         status: 'error',
-        message: '❌ Failed to initialize WebContainer',
+        message: userMessage,
         error: errorMsg
       });
       throw error;
@@ -154,62 +176,82 @@ export class WebContainerService {
   async startDevServer(): Promise<string> {
     if (!this.container) throw new Error('WebContainer not initialized');
 
-    try {
-      this.updateStatus({
-        id: 'webcontainer',
-        status: 'running',
-        message: '🚀 Starting dev server...'
-      });
+    return new Promise(async (resolve, reject) => {
+      // Set a timeout to avoid hanging indefinitely
+      const timeout = setTimeout(() => {
+        reject(new Error('Dev server start timeout (60s)'));
+      }, 60000);
 
-      console.log('🚀 Starting Vite dev server...');
+      try {
+        this.updateStatus({
+          id: 'webcontainer',
+          status: 'running',
+          message: '🚀 Starting dev server...'
+        });
 
-      // Start dev server
-      const devProcess = await this.container.spawn('npm', ['run', 'dev']);
+        console.log('🚀 Starting Vite dev server...');
 
-      // Listen for server ready message
-      devProcess.output.pipeTo(
-        new WritableStream({
-          write(chunk) {
-            const output = chunk.toString();
-            console.log('📊 Dev server output:', output);
+        // Listen for server-ready event (Correct API usage)
+        this.container!.on('server-ready', (port, url) => {
+          console.log(`✅ Server ready on port ${port}: ${url}`);
+          // Accept 5173 (Vite default) or any other port if we are flexible
+          if (port === 5173 || port === 3000) {
+            clearTimeout(timeout);
+            this.previewURL = url;
 
-            // Check if server is ready
-            if (output.includes('Local:') || output.includes('localhost')) {
-              console.log('✅ Dev server is ready');
-            }
+            this.updateStatus({
+              id: 'webcontainer',
+              status: 'ready',
+              message: '✅ Dev server ready',
+              previewURL: url
+            });
+
+            resolve(url);
           }
-        })
-      );
+        });
 
-      // Get preview URL from WebContainer
-      const previewURL = await this.container.getUrl(5173);
+        // Start dev server process
+        const devProcess = await this.container!.spawn('npm', ['run', 'dev']);
 
-      if (!previewURL) {
-        throw new Error('Failed to get preview URL from WebContainer');
+        // Log output for debugging
+        devProcess.output.pipeTo(
+          new WritableStream({
+            write(chunk) {
+              // console.log('[DevServer]', chunk.toString()); // Optional: too verbose?
+            }
+          })
+        );
+
+        // Handle process exit
+        devProcess.exit.then((code) => {
+          if (code !== 0) {
+            clearTimeout(timeout);
+            const msg = `Dev server exited with code ${code}`;
+            console.error(msg);
+            this.updateStatus({
+              id: 'webcontainer',
+              status: 'error',
+              message: '❌ Dev server crashed',
+              error: msg
+            });
+            // Only reject if we haven't resolved yet
+            if (!this.previewURL) reject(new Error(msg));
+          }
+        });
+
+      } catch (error) {
+        clearTimeout(timeout);
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        console.error('❌ Failed to start dev server:', errorMsg);
+        this.updateStatus({
+          id: 'webcontainer',
+          status: 'error',
+          message: '❌ Failed to start dev server',
+          error: errorMsg
+        });
+        reject(error);
       }
-
-      this.previewURL = previewURL;
-      console.log('✅ Dev server started:', previewURL);
-
-      this.updateStatus({
-        id: 'webcontainer',
-        status: 'ready',
-        message: '✅ Dev server ready',
-        previewURL
-      });
-
-      return previewURL;
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      console.error('❌ Failed to start dev server:', errorMsg);
-      this.updateStatus({
-        id: 'webcontainer',
-        status: 'error',
-        message: '❌ Failed to start dev server',
-        error: errorMsg
-      });
-      throw error;
-    }
+    });
   }
 
   /**

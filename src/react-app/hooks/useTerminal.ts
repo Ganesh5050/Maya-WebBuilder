@@ -7,7 +7,7 @@ interface UseTerminalReturn {
   isConnected: boolean;
   isConnecting: boolean;
   error: Error | null;
-  connect: (sandbox: Sandbox, options?: TerminalOptions) => Promise<void>;
+  connect: (sandbox: Sandbox | null, options?: TerminalOptions) => Promise<void>;
   disconnect: () => Promise<void>;
   writeData: (data: string) => Promise<void>;
   resize: (cols: number, rows: number) => Promise<void>;
@@ -20,21 +20,29 @@ export function useTerminal(): UseTerminalReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  
+
   const terminalService = getTerminalService();
   const onDataCallbackRef = useRef<((data: string) => void) | null>(null);
   const onExitCallbackRef = useRef<((code: number) => void) | null>(null);
 
-  const connect = useCallback(async (sandbox: Sandbox, options?: TerminalOptions) => {
+  const connect = useCallback(async (sandbox: Sandbox | null, options?: TerminalOptions) => {
     try {
       setIsConnecting(true);
       setError(null);
 
       console.log('🔌 Connecting to terminal...');
 
-      // Create terminal session
-      const newSessionId = await terminalService.createTerminalSession(sandbox, options);
-      
+      let newSessionId: string;
+
+      if (sandbox) {
+        // Create real terminal session
+        newSessionId = await terminalService.createTerminalSession(sandbox, options);
+      } else {
+        // Create mock session for local/preview
+        console.log('⚠️ No sandbox provided, using mock terminal');
+        newSessionId = await terminalService.createMockSession();
+      }
+
       // Set up data callback
       if (onDataCallbackRef.current) {
         terminalService.onData(newSessionId, onDataCallbackRef.current);

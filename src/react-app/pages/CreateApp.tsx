@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { X, Paperclip, ChevronUp, ChevronDown } from 'lucide-react';
+import { X, Paperclip, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import { TemplatesModal } from '../components/TemplatesModal';
+import { ProjectTemplate } from '../data/projectTemplates';
 
 const suggestions = [
   'Movie Browser',
@@ -13,6 +15,7 @@ export default function CreateApp() {
   const [appIdea, setAppIdea] = useState('');
   const [visibility, setVisibility] = useState('public');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const userCredits = 35; // User has 35 credits (read-only for this component)
   const navigate = useNavigate();
 
@@ -26,19 +29,19 @@ export default function CreateApp() {
         // Import necessary modules
         const { databaseService } = await import('../../services/databaseService');
         // const { useAuth } = await import('../../contexts/AuthContext');
-        
+
         // Get current user (this is a workaround since we can't use hooks here)
         const user = (window as any).__currentUser;
-        
+
         if (!user) {
           console.error('No user found');
           alert('Please sign in to create an app');
           return;
         }
-        
+
         // Create app in database with the prompt as description
         const newApp = await databaseService.createApp(user.id, appIdea, visibility === 'public' ? 'Public' : 'Private');
-        
+
         // Navigate to the new app
         navigate(`/apps/${newApp.id}`);
       } catch (error) {
@@ -107,7 +110,7 @@ export default function CreateApp() {
               placeholder="What do you want to build?"
               className="w-full text-xl text-gray-800 placeholder-gray-400 outline-none resize-none mb-6 h-32 bg-transparent"
             />
-            
+
             <div className="flex items-center justify-between">
               <button className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 transition-colors px-4 py-2 rounded-[10px] bg-gray-100"
                 style={{
@@ -116,10 +119,10 @@ export default function CreateApp() {
                 <Paperclip className="w-5 h-5" />
                 <span className="font-medium">Attach</span>
               </button>
-              
+
               <div className="flex items-center space-x-3">
                 <div className="relative">
-                  <button 
+                  <button
                     onClick={() => setShowDropdown(!showDropdown)}
                     className="flex items-center space-x-2 text-gray-700 font-medium bg-gray-100 rounded-[10px] px-4 py-2 outline-none cursor-pointer transition-colors"
                     style={{
@@ -128,7 +131,7 @@ export default function CreateApp() {
                     <span className="text-sm">{visibility === 'public' ? 'Public' : 'Private'}</span>
                     <ChevronDown className={`w-4 h-4 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
                   </button>
-                  
+
                   {showDropdown && (
                     <div className="absolute top-full mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-50">
                       <div className="p-4">
@@ -137,9 +140,8 @@ export default function CreateApp() {
                             setVisibility('public');
                             setShowDropdown(false);
                           }}
-                          className={`w-full flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors ${
-                            visibility === 'public' ? 'bg-gray-100' : ''
-                          }`}
+                          className={`w-full flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors ${visibility === 'public' ? 'bg-gray-100' : ''
+                            }`}
                           style={{
                             boxShadow: visibility === 'public' ? 'rgba(158, 158, 158, 0.69) 0px 0.706592px 0.706592px -0.583333px, rgba(158, 158, 158, 0.68) 0px 1.80656px 1.80656px -1.16667px, rgba(158, 158, 158, 0.65) 0px 3.62176px 3.62176px -1.75px, rgba(158, 158, 158, 0.61) 0px 6.8656px 6.8656px -2.33333px, rgba(158, 158, 158, 0.52) 0px 13.6468px 13.6468px -2.91667px, rgba(158, 158, 158, 0.3) 0px 30px 30px -3.5px, rgb(255, 255, 255) 0px 3px 1px 0px inset' : 'none'
                           }}>
@@ -149,15 +151,14 @@ export default function CreateApp() {
                             <div className="text-sm text-gray-600">Anyone can view and clone</div>
                           </div>
                         </button>
-                        
+
                         <button
                           onClick={() => {
                             setVisibility('private');
                             setShowDropdown(false);
                           }}
-                          className={`w-full flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors ${
-                            visibility === 'private' ? 'bg-gray-100' : ''
-                          }`}
+                          className={`w-full flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors ${visibility === 'private' ? 'bg-gray-100' : ''
+                            }`}
                           style={{
                             boxShadow: visibility === 'private' ? 'rgba(158, 158, 158, 0.69) 0px 0.706592px 0.706592px -0.583333px, rgba(158, 158, 158, 0.68) 0px 1.80656px 1.80656px -1.16667px, rgba(158, 158, 158, 0.65) 0px 3.62176px 3.62176px -1.75px, rgba(158, 158, 158, 0.61) 0px 6.8656px 6.8656px -2.33333px, rgba(158, 158, 158, 0.52) 0px 13.6468px 13.6468px -2.91667px, rgba(158, 158, 158, 0.3) 0px 30px 30px -3.5px, rgb(255, 255, 255) 0px 3px 1px 0px inset' : 'none'
                           }}>
@@ -173,12 +174,12 @@ export default function CreateApp() {
                     </div>
                   )}
                 </div>
-                
-                <button 
+
+                <button
                   onClick={handleEnterOrUpgrade}
                   className={`${userCredits <= 0 ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-100 hover:bg-gray-200'} p-2 rounded-[10px] transition-colors`}
                   style={{
-                    boxShadow: userCredits <= 0 
+                    boxShadow: userCredits <= 0
                       ? 'rgba(59, 130, 246, 0.5) 0px 0.706592px 0.706592px -0.583333px, rgba(59, 130, 246, 0.5) 0px 1.80656px 1.80656px -1.16667px, rgba(59, 130, 246, 0.5) 0px 3.62176px 3.62176px -1.75px, rgba(59, 130, 246, 0.5) 0px 6.8656px 6.8656px -2.33333px, rgba(59, 130, 246, 0.5) 0px 13.6468px 13.6468px -2.91667px'
                       : 'rgba(158, 158, 158, 0.69) 0px 0.706592px 0.706592px -0.583333px, rgba(158, 158, 158, 0.68) 0px 1.80656px 1.80656px -1.16667px, rgba(158, 158, 158, 0.65) 0px 3.62176px 3.62176px -1.75px, rgba(158, 158, 158, 0.61) 0px 6.8656px 6.8656px -2.33333px, rgba(158, 158, 158, 0.52) 0px 13.6468px 13.6468px -2.91667px, rgba(158, 158, 158, 0.3) 0px 30px 30px -3.5px, rgb(255, 255, 255) 0px 3px 1px 0px inset'
                   }}>
@@ -216,8 +217,29 @@ export default function CreateApp() {
               </button>
             ))}
           </div>
+
+          {/* Templates Button */}
+          <div className="text-center mt-6">
+            <button
+              onClick={() => setShowTemplatesModal(true)}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40"
+            >
+              <Sparkles className="w-5 h-5" />
+              Browse Templates
+            </button>
+            <p className="text-xs text-gray-500 mt-2">Start with a professional template and customize it</p>
+          </div>
         </div>
       </div>
+
+      {/* Templates Modal */}
+      <TemplatesModal
+        isOpen={showTemplatesModal}
+        onClose={() => setShowTemplatesModal(false)}
+        onSelectTemplate={(template: ProjectTemplate) => {
+          setAppIdea(template.prompt);
+        }}
+      />
     </div>
   );
 }

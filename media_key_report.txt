@@ -1,0 +1,27 @@
+MEDIA API KEY REPORT
+====================
+
+VALID KEYS (Use First):
+  ✅ Stability AI Key 1
+  ✅ Stability AI Key 2
+  ✅ Stability AI Key 3
+  ✅ Replicate Key 1
+  ✅ Replicate Key 2
+  ✅ Fal AI Key 1
+  ✅ Fal AI Key 2
+  ✅ Unsplash
+  ✅ Freepik
+  ✅ Runway Key 1
+  ✅ Runway Key 2
+
+INVALID/EXPIRED KEYS:
+  ❌ Fal AI Key 1
+  ❌ Fal AI Key 2
+  ❌ Runway Key 1
+  ❌ Runway Key 2
+
+OTHER:
+  ❓ HTTP 400 Pixabay
+  ❓ HTTP 404 Photoroom Live
+  ❓ HTTP 404 Photoroom WebBuilder
+  🔵 SKIPPED (POST-only) ImgBB Key 1

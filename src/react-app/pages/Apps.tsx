@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Plus, Grid3X3, Clock, Star, Settings, MoreHorizontal, Search, ExternalLink } from 'lucide-react';
+import { Plus, Grid3X3, Clock, Star, Settings, MoreHorizontal, Search, ExternalLink, Trash2 } from 'lucide-react';
 import UserProfileDropdown from '@/react-app/components/UserProfileDropdown';
 import { databaseService, App } from '@/services/databaseService';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,6 +10,7 @@ export default function Apps() {
   const [searchQuery, setSearchQuery] = useState('');
   const [apps, setApps] = useState<App[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -28,16 +29,21 @@ export default function Apps() {
     };
 
     loadApps();
-    
+
     // Listen for apps data changes from other components
     const handleAppsDataChanged = () => {
       loadApps();
     };
-    
+
     window.addEventListener('appsDataChanged', handleAppsDataChanged);
-    
+
+    // Close dropdown when clicking outside
+    const handleClickOutside = () => setActiveDropdownId(null);
+    window.addEventListener('click', handleClickOutside);
+
     return () => {
       window.removeEventListener('appsDataChanged', handleAppsDataChanged);
+      window.removeEventListener('click', handleClickOutside);
     };
   }, [user]);
 
@@ -66,6 +72,23 @@ export default function Apps() {
     }
   };
 
+  const handleDeleteApp = async (appId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent opening the app
+    if (!user || !confirm('Are you sure you want to delete this project? This action cannot be undone.')) return;
+
+    try {
+      await databaseService.deleteApp(appId, user.id);
+      // Optimistic update
+      setApps(prev => prev.filter(app => app.id !== appId));
+      // Trigger refresh just in case
+      window.dispatchEvent(new CustomEvent('appsDataChanged'));
+    } catch (error) {
+      console.error('Error deleting app:', error);
+      alert('Failed to delete app. Please try again.');
+    }
+    setActiveDropdownId(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
@@ -89,7 +112,7 @@ export default function Apps() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium text-gray-900">Apps</h3>
-              <button 
+              <button
                 className="p-2 font-medium transition-all duration-200 hover:opacity-90"
                 style={{
                   backgroundColor: 'rgb(245, 245, 245)',
@@ -101,8 +124,8 @@ export default function Apps() {
               </button>
             </div>
             <nav className="space-y-2">
-              <a 
-                href="#" 
+              <a
+                href="#"
                 className="flex items-center space-x-3 px-4 py-3 text-sm font-medium transition-all duration-200"
                 style={{
                   backgroundColor: 'rgb(0, 0, 0)',
@@ -113,8 +136,8 @@ export default function Apps() {
                 <Grid3X3 className="w-4 h-4 text-white" />
                 <span className="text-white">All apps</span>
               </a>
-              <a 
-                href="/apps/recent" 
+              <a
+                href="/apps/recent"
                 className="flex items-center space-x-3 px-4 py-3 text-sm font-medium transition-all duration-200 hover:opacity-90"
                 style={{
                   backgroundColor: 'rgb(245, 245, 245)',
@@ -125,8 +148,8 @@ export default function Apps() {
                 <Clock className="w-4 h-4 text-gray-600" />
                 <span className="text-gray-700">Recent</span>
               </a>
-              <a 
-                href="/apps/starred" 
+              <a
+                href="/apps/starred"
                 className="flex items-center space-x-3 px-4 py-3 text-sm font-medium transition-all duration-200 hover:opacity-90"
                 style={{
                   backgroundColor: 'rgb(245, 245, 245)',
@@ -144,8 +167,8 @@ export default function Apps() {
           <div>
             <h3 className="text-sm font-medium text-gray-900 mb-3">Settings</h3>
             <nav className="space-y-2">
-              <a 
-                href="/apps/settings/subscription" 
+              <a
+                href="/apps/settings/subscription"
                 className="flex items-center space-x-3 px-4 py-3 text-sm font-medium transition-all duration-200 hover:opacity-90"
                 style={{
                   backgroundColor: 'rgb(245, 245, 245)',
@@ -170,11 +193,10 @@ export default function Apps() {
               {['Dashboard', 'Learn', 'Spotlight'].map((tab) => (
                 <button
                   key={tab}
-                  className={`px-4 py-2 text-sm font-medium transition-all duration-200 hover:opacity-90 ${
-                    activeTab === tab
-                      ? 'text-white'
-                      : 'text-gray-700'
-                  }`}
+                  className={`px-4 py-2 text-sm font-medium transition-all duration-200 hover:opacity-90 ${activeTab === tab
+                    ? 'text-white'
+                    : 'text-gray-700'
+                    }`}
                   onClick={() => {
                     if (tab === 'Spotlight') {
                       window.location.href = '/spotlight';
@@ -241,7 +263,7 @@ export default function Apps() {
                   <span>Name</span>
                   <button className="text-gray-400 hover:text-gray-600">
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 12 12">
-                      <path d="M6 8L3 5h6l-3 3z"/>
+                      <path d="M6 8L3 5h6l-3 3z" />
                     </svg>
                   </button>
                 </div>
@@ -249,7 +271,7 @@ export default function Apps() {
                   <span>Status</span>
                   <button className="text-gray-400 hover:text-gray-600">
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 12 12">
-                      <path d="M6 8L3 5h6l-3 3z"/>
+                      <path d="M6 8L3 5h6l-3 3z" />
                     </svg>
                   </button>
                 </div>
@@ -257,7 +279,7 @@ export default function Apps() {
                   <span>Visibility</span>
                   <button className="text-gray-400 hover:text-gray-600">
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 12 12">
-                      <path d="M6 8L3 5h6l-3 3z"/>
+                      <path d="M6 8L3 5h6l-3 3z" />
                     </svg>
                   </button>
                 </div>
@@ -277,7 +299,7 @@ export default function Apps() {
                   <Grid3X3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No apps yet</h3>
                   <p className="text-gray-600 mb-6">Create your first app to get started</p>
-                  <a 
+                  <a
                     href="/"
                     className="px-6 py-3 font-medium transition-all duration-200 hover:opacity-90 inline-block"
                     style={{
@@ -291,44 +313,68 @@ export default function Apps() {
                 </div>
               ) : (
                 apps.map((app) => (
-                <div key={app.id} className="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => handleAppClick(app.id)}>
-                  <div className="grid grid-cols-12 gap-4 items-center">
-                    <div className="col-span-5 flex items-center space-x-3">
-                      <button 
-                        onClick={(e) => {
+                  <div key={app.id} className="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => handleAppClick(app.id)}>
+                    <div className="grid grid-cols-12 gap-4 items-center">
+                      <div className="col-span-5 flex items-center space-x-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleStar(app.id);
+                          }}
+                          className={`text-gray-400 hover:text-yellow-500 transition-colors ${app.starred ? 'text-yellow-500' : ''
+                            }`}
+                        >
+                          <Star className="w-4 h-4" fill={app.starred ? 'currentColor' : 'none'} />
+                        </button>
+                        <div>
+                          <h3 className="font-medium text-gray-900">{app.name}</h3>
+                          <p className="text-sm text-gray-500">{app.url}</p>
+                        </div>
+                      </div>
+                      <div className="col-span-3">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          {app.status}
+                        </span>
+                      </div>
+                      <div className="col-span-3">
+                        <span className="text-sm text-gray-900">{app.visibility}</span>
+                      </div>
+                      <div className="col-span-1 flex items-center justify-end space-x-2">
+                        <button className="p-1 text-gray-400 hover:text-gray-600 transition-colors" title="Open App" onClick={(e) => {
                           e.stopPropagation();
-                          handleToggleStar(app.id);
-                        }}
-                        className={`text-gray-400 hover:text-yellow-500 transition-colors ${
-                          app.starred ? 'text-yellow-500' : ''
-                        }`}
-                      >
-                        <Star className="w-4 h-4" fill={app.starred ? 'currentColor' : 'none'} />
-                      </button>
-                      <div>
-                        <h3 className="font-medium text-gray-900">{app.name}</h3>
-                        <p className="text-sm text-gray-500">{app.url}</p>
+                          window.open(`/apps/${app.id}`, '_blank');
+                        }}>
+                          <ExternalLink className="w-4 h-4" />
+                        </button>
+
+                        {/* Dropdown Menu */}
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveDropdownId(activeDropdownId === app.id ? null : app.id);
+                            }}
+                            className={`p-1 transition-colors rounded-full ${activeDropdownId === app.id ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+
+                          {activeDropdownId === app.id && (
+                            <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20 animate-in fade-in zoom-in-95 duration-100">
+                              <button
+                                onClick={(e) => handleDeleteApp(app.id, e)}
+                                className="flex items-center w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete Project
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="col-span-3">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        {app.status}
-                      </span>
-                    </div>
-                    <div className="col-span-3">
-                      <span className="text-sm text-gray-900">{app.visibility}</span>
-                    </div>
-                    <div className="col-span-1 flex items-center justify-end space-x-2">
-                      <button className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
-                        <ExternalLink className="w-4 h-4" />
-                      </button>
-                      <button className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
-                    </div>
                   </div>
-                </div>
-              ))
+                ))
               )}
             </div>
           </div>

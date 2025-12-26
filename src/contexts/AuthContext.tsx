@@ -7,7 +7,7 @@ interface AuthContextType {
   session: Session | null
   loading: boolean
   signInWithGoogle: () => Promise<void>
-  signInWithGitHub: () => Promise<void>
+  signInWithGitHub: (redirectUrl?: string) => Promise<void>
   signInWithEmail: (email: string) => Promise<void>
   signInWithPassword: (email: string, password: string) => Promise<void>
   signUpWithPassword: (email: string, password: string, firstName: string, lastName: string) => Promise<void>
@@ -62,11 +62,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error
   }
 
-  const signInWithGitHub = async () => {
+  const signInWithGitHub = async (redirectUrl?: string) => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
-        redirectTo: `${window.location.origin}/apps`
+        redirectTo: redirectUrl || `${window.location.origin}/apps`
       }
     })
     if (error) throw error
@@ -85,15 +85,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithPassword = async (email: string, password: string) => {
     console.log('Attempting to sign in with:', { email });
     console.log('Supabase URL:', 'https://simngjynepjayqkwmkau.supabase.co');
-    
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      
+
       console.log('Sign in response:', { data, error });
-      
+
       if (error) {
         console.error('Supabase auth error:', error);
         throw error;
@@ -110,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUpWithPassword = async (email: string, password: string, firstName: string, lastName: string) => {
     console.log('=== AUTH CONTEXT SIGN UP START ===');
     console.log('Attempting to sign up with:', { email, firstName, lastName });
-    
+
     try {
       console.log('Calling supabase.auth.signUp...');
       const { data, error } = await supabase.auth.signUp({
@@ -126,19 +126,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           emailRedirectTo: undefined
         }
       });
-      
+
       console.log('Sign up response:', { data, error });
-      
+
       if (error) {
         console.error('Supabase auth error:', error);
         throw error;
       }
-      
+
       // If user is created but not confirmed, that's OK for our use case
       if (data.user && !data.user.email_confirmed_at) {
         console.log('✅ User created successfully (email confirmation disabled)');
       }
-      
+
       console.log('=== AUTH CONTEXT SIGN UP SUCCESS ===');
     } catch (err: any) {
       console.error('=== AUTH CONTEXT SIGN UP ERROR ===');
@@ -151,13 +151,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('=== TESTING SUPABASE CONNECTION ===');
     console.log('Testing Supabase connection...');
     console.log('URL:', 'https://simngjynepjayqkwmkau.supabase.co');
-    
+
     try {
       // Test 1: Basic auth endpoint
       console.log('Test 1: Testing auth endpoint...');
       const { data: authData, error: authError } = await supabase.auth.getSession();
       console.log('Auth test result:', { authData, authError });
-      
+
       // Test 2: Test if we can reach the auth API directly
       console.log('Test 2: Testing direct API call...');
       const response = await fetch('https://simngjynepjayqkwmkau.supabase.co/auth/v1/user', {
@@ -169,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       console.log('Direct API response status:', response.status);
       console.log('Direct API response ok:', response.ok);
-      
+
       if (!authError && response.ok) {
         console.log('✅ Supabase connection successful!');
         return true;

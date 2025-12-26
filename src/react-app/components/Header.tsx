@@ -32,6 +32,12 @@ export default function Header() {
             <a href="/spotlight" className="text-gray-700 hover:text-gray-900 transition-colors">
               Spotlight
             </a>
+            <Link to="/demo-generation" className="text-blue-600 hover:text-blue-800 transition-colors font-semibold">
+              🎨 Live Demo
+            </Link>
+            <Link to="/premium-demo" className="text-purple-600 hover:text-purple-800 transition-colors font-semibold">
+              ✨ Premium Components
+            </Link>
             
             {user ? (
               <>

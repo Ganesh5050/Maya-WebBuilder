@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { llmManager, TaskType } from './LLMManager';
 
 // Database interfaces
 export interface App {
@@ -34,6 +35,7 @@ export interface WebsiteGeneration {
   html: string;
   css: string;
   js: string;
+  project_files?: Array<{ path: string, content: string, language: string }>;
   created_at: string;
 }
 
@@ -52,7 +54,7 @@ export interface Deployment {
 // Smart app name generator
 function generateAppName(prompt: string): string {
   const lowerPrompt = prompt.toLowerCase();
-  
+
   // Extract key concepts and create smart names
   const concepts = {
     'ecommerce|shop|store|marketplace': ['ShopHub', 'MarketFlow', 'StoreCraft', 'TradeSpot', 'RetailGenius'],
@@ -71,7 +73,7 @@ function generateAppName(prompt: string): string {
     'nonprofit|charity|organization|cause': ['CauseHub', 'CharityFlow', 'OrgX', 'NonProfitCraft', 'MissionPro'],
     'personal|cv|resume|profile': ['ProfileHub', 'ResumeFlow', 'PersonalX', 'CVCraft', 'IdentityPro']
   };
-  
+
   // Find matching category
   for (const [category, names] of Object.entries(concepts)) {
     if (new RegExp(category).test(lowerPrompt)) {
@@ -80,16 +82,16 @@ function generateAppName(prompt: string): string {
       return `${randomName}${suffix}`;
     }
   }
-  
+
   // Fallback: Generate from keywords
   const keywords = lowerPrompt.match(/\b[a-z]+\b/g) || [];
   const adjectives = ['Smart', 'Pro', 'Hub', 'Flow', 'X', 'Craft', 'Genius', 'Spot', 'Space', 'Point'];
   const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const randomKeyword = keywords.length > 0 ? 
-    keywords[Math.floor(Math.random() * Math.min(keywords.length, 3))] : 
+  const randomKeyword = keywords.length > 0 ?
+    keywords[Math.floor(Math.random() * Math.min(keywords.length, 3))] :
     'Site';
   const suffix = Math.floor(Math.random() * 999) + 1;
-  
+
   return `${randomAdj}${randomKeyword.charAt(0).toUpperCase() + randomKeyword.slice(1)}${suffix}`;
 }
 
@@ -103,11 +105,8 @@ function generateAppUrl(name: string): string {
 
 // AI Assistant Service
 class AIAssistantService {
-  private apiKey: string;
-  
   constructor() {
-    // Use environment variable for API key
-    this.apiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
+    // LLMManager handles keys now
   }
 
   async discussCode(context: {
@@ -118,21 +117,10 @@ class AIAssistantService {
     console.log('🧠 AI Assistant: discussCode called'); // Debug log
     const prompt = this.buildDiscussionPrompt(context);
     console.log('📝 Prompt built:', prompt.substring(0, 200) + '...'); // Debug log
-    
+
     try {
-      console.log('🌐 Calling OpenAI API for discussion only...'); // Debug log
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4',
-          messages: [
-            {
-              role: 'system',
-              content: `You are an expert web development assistant and mentor. You help users understand their code, suggest improvements, and discuss development decisions. 
+      console.log('🌐 Calling AI LLMManager for discussion...'); // Debug log
+      const systemPrompt = `You are an expert web development assistant and mentor. You help users understand their code, suggest improvements, and discuss development decisions. 
 
 CRITICAL RULES:
 - NEVER write code, HTML, CSS, or JavaScript
@@ -142,34 +130,15 @@ CRITICAL RULES:
 - Be helpful, educational, and encouraging
 - If asked for code, explain how to approach it instead of writing it
 
-Your role is to be a conversational mentor, not a code generator.`
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          max_tokens: 1000,
-          temperature: 0.7
-        })
-      });
+Your role is to be a conversational mentor, not a code generator.`;
 
-      console.log('📡 API Response status:', response.status); // Debug log
-      
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
-      }
+      const result = await llmManager.generateResponse(prompt, TaskType.CHAT, systemPrompt);
 
-      const data = await response.json();
-      console.log('📊 API Data received'); // Debug log
-      
-      const result = data.choices[0]?.message?.content || 'I apologize, but I couldn\'t process your request.';
       console.log('✅ Discussion response generated (no code)'); // Debug log
-      
       return result;
     } catch (error) {
       console.error('❌ AI Assistant error:', error);
-      
+
       // Fallback response when API fails
       return `I'm having trouble connecting to my AI services right now, but I can still help! 
 
@@ -225,32 +194,10 @@ Provide helpful, educational guidance about their website project.`;
     const prompt = `Please review this website code and provide detailed feedback:\n\nHTML:\n${code.html}\n\nCSS:\n${code.css}\n\nJavaScript:\n${code.js}\n\nProvide feedback in JSON format with: overall assessment, html feedback, css feedback, js feedback, and improvement suggestions array.`;
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert code reviewer. Always respond with valid JSON format.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          max_tokens: 1500,
-          temperature: 0.3
-        })
-      });
+      const systemPrompt = 'You are an expert code reviewer. Always respond with valid JSON format.';
 
-      const data = await response.json();
-      const content = data.choices[0]?.message?.content;
-      
+      const content = await llmManager.generateResponse(prompt, TaskType.ANALYSIS, systemPrompt);
+
       try {
         return JSON.parse(content || '{}');
       } catch {
@@ -282,7 +229,7 @@ class DatabaseService {
     // Generate smart app name from prompt
     const appName = generateAppName(prompt);
     const appUrl = generateAppUrl(appName);
-    
+
     const { data, error } = await supabase
       .from('apps')
       .insert({
@@ -462,7 +409,7 @@ class DatabaseService {
   }
 
   // Website Generations CRUD operations
-  async saveWebsiteGeneration(appId: string, userId: string, html: string, css: string, js: string, prompt: string): Promise<WebsiteGeneration> {
+  async saveWebsiteGeneration(appId: string, userId: string, html: string, css: string, js: string, prompt: string, projectFiles?: Array<{ path: string, content: string, language: string }>): Promise<WebsiteGeneration> {
     console.log('💾 saveWebsiteGeneration called:', {
       appId,
       userId,
@@ -471,7 +418,7 @@ class DatabaseService {
       jsLength: js.length,
       promptLength: prompt.length
     });
-    
+
     const { data, error } = await supabase
       .from('website_generations')
       .insert({
@@ -480,7 +427,8 @@ class DatabaseService {
         html,
         css,
         js,
-        prompt
+        prompt,
+        project_files: projectFiles || null
       })
       .select()
       .single();
@@ -489,7 +437,7 @@ class DatabaseService {
       console.error('❌ saveWebsiteGeneration error:', error);
       throw error;
     }
-    
+
     console.log('✅ saveWebsiteGeneration success:', data.id);
     return data;
   }
@@ -506,9 +454,25 @@ class DatabaseService {
     return data || [];
   }
 
+  async updateWebsiteGenerationFiles(generationId: string, projectFiles: Array<{ path: string, content: string, language: string }>): Promise<void> {
+    console.log('🔄 Updating generation with project files:', generationId);
+
+    const { error } = await supabase
+      .from('website_generations')
+      .update({ project_files: projectFiles })
+      .eq('id', generationId);
+
+    if (error) {
+      console.error('❌ Error updating generation files:', error);
+      throw error;
+    }
+
+    console.log('✅ Generation files updated successfully');
+  }
+
   async getLatestWebsiteGeneration(appId: string, userId: string): Promise<WebsiteGeneration | null> {
     console.log('🔍 getLatestWebsiteGeneration called:', { appId, userId });
-    
+
     const { data, error } = await supabase
       .from('website_generations')
       .select('*')
@@ -522,12 +486,12 @@ class DatabaseService {
       console.error('❌ getLatestWebsiteGeneration error:', error.message, error.code);
       return null;
     }
-    
+
     if (!data) {
       console.log('ℹ️ No generations found (expected for new apps)');
       return null;
     }
-    
+
     console.log('✅ getLatestWebsiteGeneration success: Found');
     return data;
   }
@@ -548,11 +512,11 @@ class DatabaseService {
     console.log('📱 AppId:', appId); // Debug log
     console.log('👤 UserId:', userId); // Debug log
     console.log('💬 Message:', message); // Debug log
-    
+
     // Get recent chat history for context
     const history = await this.getAppChatMessages(appId, userId, 'generation');
     console.log('📚 History length:', history.length); // Debug log
-    
+
     const response = await this.aiAssistant.discussCode({
       currentCode,
       userMessage: message,
@@ -594,7 +558,7 @@ class DatabaseService {
     url?: string
   ): Promise<Deployment> {
     console.log('💾 saveDeployment called:', { appId, userId, deploymentId, platform, status, url });
-    
+
     const { data, error } = await supabase
       .from('deployments')
       .insert({
@@ -628,16 +592,16 @@ class DatabaseService {
     url?: string
   ): Promise<void> {
     console.log('🔄 updateDeploymentStatus called:', { deploymentId, status, url });
-    
+
     const updateData: any = {
       status,
       updated_at: new Date().toISOString()
     };
-    
+
     if (url) {
       updateData.url = url;
     }
-    
+
     const { error } = await supabase
       .from('deployments')
       .update(updateData)
@@ -656,7 +620,7 @@ class DatabaseService {
    */
   async getAppDeployments(appId: string, userId: string): Promise<Deployment[]> {
     console.log('🔍 getAppDeployments called:', { appId, userId });
-    
+
     const { data, error } = await supabase
       .from('deployments')
       .select('*')
@@ -678,7 +642,7 @@ class DatabaseService {
    */
   async getLatestDeployment(appId: string, userId: string): Promise<Deployment | null> {
     console.log('🔍 getLatestDeployment called:', { appId, userId });
-    
+
     const { data, error } = await supabase
       .from('deployments')
       .select('*')
@@ -707,7 +671,7 @@ class DatabaseService {
    */
   async deleteDeployment(deploymentId: string, userId: string): Promise<void> {
     console.log('🗑️ deleteDeployment called:', { deploymentId, userId });
-    
+
     const { error } = await supabase
       .from('deployments')
       .delete()

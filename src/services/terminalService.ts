@@ -39,7 +39,7 @@ export class TerminalService {
         cols: options.cols,
         rows: options.rows,
         cwd: options.cwd || '/home/user',
-        onData: () => {} // Required by E2B API
+        onData: () => { } // Required by E2B API
       });
 
       const sessionId = `terminal_${sandbox.sandboxId}_${Date.now()}`;
@@ -94,6 +94,39 @@ export class TerminalService {
     }
   }
 
+  async createMockSession(): Promise<string> {
+    const sessionId = `mock_terminal_${Date.now()}`;
+    const session: TerminalSession = {
+      id: sessionId,
+      sandboxId: 'local-mock',
+      pty: {
+        resize: () => { },
+        kill: () => { },
+        write: (data: Uint8Array) => {
+          // Echo back for visibility
+          const text = new TextDecoder().decode(data);
+          const callback = this.onDataCallbacks.get(sessionId);
+          if (callback) callback(text.replace(/\r/g, '\r\n'));
+        }
+      },
+      isConnected: true,
+      lastActivity: new Date()
+    };
+    this.sessions.set(sessionId, session);
+    console.log(`✅ Mock Terminal session created: ${sessionId}`);
+
+    // Send welcome message
+    setTimeout(() => {
+      const callback = this.onDataCallbacks.get(sessionId);
+      if (callback) {
+        callback('\x1b[1;33m⚠️ Running in Local/Mock Mode\x1b[0m\r\n');
+        callback('Backend connection unavailable. Commands will be simulated.\r\n\r\n$ ');
+      }
+    }, 100);
+
+    return sessionId;
+  }
+
   async writeToTerminal(sessionId: string, data: string): Promise<void> {
     const session = this.sessions.get(sessionId);
     if (!session) {
@@ -108,7 +141,7 @@ export class TerminalService {
       // Convert string to Uint8Array for E2B PTY
       const encoder = new TextEncoder();
       const dataBytes = encoder.encode(data);
-      
+
       // Send input to PTY (the exact method may vary - we'll need to check E2B docs)
       // For now, we'll try the most likely method
       if (typeof session.pty.sendInput === 'function') {
@@ -118,7 +151,7 @@ export class TerminalService {
       } else {
         console.warn('⚠️ No input method found on PTY, data not sent');
       }
-      
+
       session.lastActivity = new Date();
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -165,7 +198,7 @@ export class TerminalService {
 
     try {
       console.log(`🧹 Killing terminal session: ${sessionId}`);
-      
+
       if (session.isConnected) {
         await session.pty.kill();
       }
@@ -218,7 +251,7 @@ export class TerminalService {
 
   async cleanupAllSessions(): Promise<void> {
     console.log('🧹 Cleaning up all terminal sessions...');
-    
+
     const sessionIds = Array.from(this.sessions.keys());
     for (const sessionId of sessionIds) {
       await this.killTerminalSession(sessionId);

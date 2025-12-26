@@ -1,0 +1,163 @@
+/* src/react-app/components/LovableChatModule/styles.css */
+
+/* User Message Entrance */
+.user-message {
+    animation: slideUpFade 0.3s ease-out;
+}
+
+@keyframes slideUpFade {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Thinking Dots Pulse */
+.thinking-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: currentColor;
+    animation: pulse 1.4s ease-in-out infinite;
+}
+
+.thinking-dot:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.thinking-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.thinking-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes pulse {
+
+    0%,
+    80%,
+    100% {
+        opacity: 0.3;
+        transform: scale(0.9);
+    }
+
+    40% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+/* Typing Cursor Blink */
+.typing-cursor {
+    display: inline-block;
+    width: 6px;
+    height: 14px;
+    background-color: currentColor;
+    margin-left: 2px;
+    vertical-align: middle;
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+    50% {
+        opacity: 0;
+    }
+}
+
+/* File Edit Slide In */
+.file-edit-enter {
+    animation: slideInLeft 0.3s ease-out forwards;
+}
+
+@keyframes slideInLeft {
+    0% {
+        opacity: 0;
+        transform: translateX(-15px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Image Generation Fade In */
+.image-gen-enter {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Action Buttons Fade In */
+.action-buttons {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Thinking Accordion Expand/Collapse */
+.thinking-accordion-content {
+    transition: all 0.3s ease-out;
+    overflow: hidden;
+}
+
+.nested-accordion-content {
+    transition: all 0.3s ease-out;
+    overflow: hidden;
+}
+
+.animate-pulse-slow {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.chevron {
+    transition: transform 0.2s ease-in-out;
+}
+
+.chevron.rotated {
+    transform: rotate(180deg);
+}
+
+/* Bouncing Dot Grid Spinner */
+.animate-grid-bounce {
+    animation: gridMove 2s linear infinite;
+}
+
+@keyframes gridMove {
+    0% {
+        top: 0;
+        left: 0;
+    }
+
+    25% {
+        top: calc(50% - 3px);
+        left: calc(100% - 6px);
+    }
+
+    50% {
+        top: calc(100% - 6px);
+        left: 0;
+    }
+
+    75% {
+        top: calc(50% - 3px);
+        left: calc(100% - 6px);
+    }
+
+    100% {
+        top: 0;
+        left: 0;
+    }
+}

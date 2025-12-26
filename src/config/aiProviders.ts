@@ -4,6 +4,7 @@
 export interface AIProvider {
   name: string;
   apiKey: string;
+  envKey?: string; // Store environment variable name for dynamic lookup
   model: string;
   endpoint: string;
   maxTokens?: number;
@@ -19,10 +20,27 @@ export interface AIResponse {
   };
 }
 
+// Safe environment variable accessor for both Vite and Node environments
+const getEnv = (key: string): string => {
+  // 1. Runtime Override (Settings UI)
+  if (typeof localStorage !== 'undefined') {
+    const local = localStorage.getItem(key);
+    if (local) return local;
+  }
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    return import.meta.env[key] || '';
+  }
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env[key] || '';
+  }
+  return '';
+};
+
 export const AI_PROVIDERS: Record<string, AIProvider> = {
   openai: {
     name: 'OpenAI',
-    apiKey: import.meta.env.VITE_OPENAI_API_KEY || '',
+    apiKey: getEnv('VITE_OPENAI_API_KEY'),
+    envKey: 'VITE_OPENAI_API_KEY',
     model: 'gpt-4o-mini',
     endpoint: 'https://api.openai.com/v1/chat/completions',
     maxTokens: 4000,
@@ -30,23 +48,53 @@ export const AI_PROVIDERS: Record<string, AIProvider> = {
   },
   google: {
     name: 'Google Gemini',
-    apiKey: import.meta.env.VITE_GOOGLE_API_KEY || '',
-    model: 'gemini-2.5-flash',
-    endpoint: 'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent',
+    apiKey: getEnv('VITE_GOOGLE_API_KEY'),
+    envKey: 'VITE_GOOGLE_API_KEY',
+    model: 'gemini-1.5-flash',
+    endpoint: 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent',
     maxTokens: 8000,
     temperature: 0.7
   },
   chute: {
-    name: 'Chute AI',
-    apiKey: import.meta.env.VITE_CHUTE_API_KEY || '',
+    name: 'Chute AI Key 1',
+    apiKey: getEnv('VITE_CHUTE_API_KEY'),
+    envKey: 'VITE_CHUTE_API_KEY',
+    model: 'chute-default',
+    endpoint: 'https://api.chute.ai/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  chute2: {
+    name: 'Chute AI Key 2',
+    apiKey: getEnv('VITE_CHUTE_API_KEY_2'),
+    envKey: 'VITE_CHUTE_API_KEY_2',
     model: 'chute-default',
     endpoint: 'https://api.chute.ai/v1/chat/completions',
     maxTokens: 4000,
     temperature: 0.7
   },
   aiml: {
-    name: 'AIML API',
-    apiKey: import.meta.env.VITE_AIML_API_KEY || '',
+    name: 'AIML API Key 1',
+    apiKey: getEnv('VITE_AIML_API_KEY'),
+    envKey: 'VITE_AIML_API_KEY',
+    model: 'aiml-default',
+    endpoint: 'https://api.aimlapi.com/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  aiml2: {
+    name: 'AIML API Key 2',
+    apiKey: getEnv('VITE_AIML_API_KEY_2'),
+    envKey: 'VITE_AIML_API_KEY_2',
+    model: 'aiml-default',
+    endpoint: 'https://api.aimlapi.com/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  aiml3: {
+    name: 'AIML API Key 3',
+    apiKey: getEnv('VITE_AIML_API_KEY_3'),
+    envKey: 'VITE_AIML_API_KEY_3',
     model: 'aiml-default',
     endpoint: 'https://api.aimlapi.com/v1/chat/completions',
     maxTokens: 4000,
@@ -54,7 +102,8 @@ export const AI_PROVIDERS: Record<string, AIProvider> = {
   },
   groq: {
     name: 'Groq',
-    apiKey: import.meta.env.VITE_GROQ_API_KEY || '',
+    apiKey: getEnv('VITE_GROQ_API_KEY'),
+    envKey: 'VITE_GROQ_API_KEY',
     model: 'llama-3.1-8b-instant',
     endpoint: 'https://api.groq.com/openai/v1/chat/completions',
     maxTokens: 4000,
@@ -62,7 +111,8 @@ export const AI_PROVIDERS: Record<string, AIProvider> = {
   },
   anthropic: {
     name: 'Anthropic',
-    apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY || '',
+    apiKey: getEnv('VITE_ANTHROPIC_API_KEY'),
+    envKey: 'VITE_ANTHROPIC_API_KEY',
     model: 'claude-3-sonnet-20240229',
     endpoint: 'https://api.anthropic.com/v1/messages',
     maxTokens: 4000,
@@ -70,7 +120,8 @@ export const AI_PROVIDERS: Record<string, AIProvider> = {
   },
   grok: {
     name: 'Grok (xAI)',
-    apiKey: import.meta.env.VITE_GROK_API_KEY || '',
+    apiKey: getEnv('VITE_GROK_API_KEY'),
+    envKey: 'VITE_GROK_API_KEY',
     model: 'grok-4-latest',
     endpoint: 'https://api.x.ai/v1/chat/completions',
     maxTokens: 4000,
@@ -78,103 +129,199 @@ export const AI_PROVIDERS: Record<string, AIProvider> = {
   },
   qubrid: {
     name: 'Qubrid AI',
-    apiKey: import.meta.env.VITE_QUBRID_API_KEY || '',
+    apiKey: getEnv('VITE_QUBRID_API_KEY'),
+    envKey: 'VITE_QUBRID_API_KEY',
     model: 'Qwen/Qwen3-VL-8B-Instruct',
     endpoint: 'https://platform.qubrid.com/api/v1/qubridai/multimodal/chat',
     maxTokens: 2048,
     temperature: 0.7
   },
+  zai: {
+    name: 'ZAI API Key 1',
+    apiKey: getEnv('VITE_ZAI_API_KEY'),
+    envKey: 'VITE_ZAI_API_KEY',
+    model: 'gpt-3.5-turbo',
+    endpoint: 'https://api.zai.com/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  zai2: {
+    name: 'ZAI API Key 2',
+    apiKey: getEnv('VITE_ZAI_API_KEY_2'),
+    envKey: 'VITE_ZAI_API_KEY_2',
+    model: 'gpt-3.5-turbo',
+    endpoint: 'https://api.zai.com/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
   openrouter: {
-    name: 'OpenRouter - Llama 3.3 70B',
-    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
+    name: 'OpenRouter Key 1 - Llama 3.3 70B',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY'),
+    envKey: 'VITE_OPENROUTER_API_KEY',
     model: 'meta-llama/llama-3.3-70b-instruct:free',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
     maxTokens: 4000,
     temperature: 0.7
   },
   openrouter2: {
-    name: 'OpenRouter - Mistral Small 3.1',
-    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
-    model: 'mistralai/mistral-small-3.1-24b-instruct:free',
+    name: 'OpenRouter Key 2 - Llama 3.3 70B',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY_2'),
+    envKey: 'VITE_OPENROUTER_API_KEY_2',
+    model: 'meta-llama/llama-3.3-70b-instruct:free',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
     maxTokens: 4000,
     temperature: 0.7
   },
   openrouter3: {
-    name: 'OpenRouter - Hermes 3 405B',
-    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
-    model: 'nousresearch/hermes-3-llama-3.1-405b:free',
+    name: 'OpenRouter Key 3 - Llama 3.3 70B',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY_3'),
+    envKey: 'VITE_OPENROUTER_API_KEY_3',
+    model: 'meta-llama/llama-3.3-70b-instruct:free',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
     maxTokens: 4000,
     temperature: 0.7
   },
   openrouter4: {
-    name: 'OpenRouter - Gemini 2.0 Flash',
-    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
-    model: 'google/gemini-2.0-flash-exp:free',
+    name: 'OpenRouter Key 4 - Llama 3.3 70B',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY_4'),
+    envKey: 'VITE_OPENROUTER_API_KEY_4',
+    model: 'meta-llama/llama-3.3-70b-instruct:free',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
     maxTokens: 4000,
     temperature: 0.7
   },
   openrouter5: {
-    name: 'OpenRouter - Gemma 3 27B',
-    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
-    model: 'google/gemma-3-27b-it:free',
+    name: 'OpenRouter Key 1 - Mistral Small',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY'),
+    envKey: 'VITE_OPENROUTER_API_KEY',
+    model: 'mistralai/mistral-small-3.1-24b-instruct:free',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
     maxTokens: 4000,
     temperature: 0.7
   },
   openrouter6: {
-    name: 'OpenRouter - Qwen3 235B',
-    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
-    model: 'qwen/qwen3-235b-a22b:free',
+    name: 'OpenRouter Key 2 - Mistral Small',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY_2'),
+    envKey: 'VITE_OPENROUTER_API_KEY_2',
+    model: 'mistralai/mistral-small-3.1-24b-instruct:free',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
     maxTokens: 4000,
     temperature: 0.7
   },
   openrouter7: {
-    name: 'OpenRouter - DeepSeek V3.1',
-    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
-    model: 'nex-agi/deepseek-v3.1-nex-n1:free',
+    name: 'OpenRouter Key 3 - Mistral Small',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY_3'),
+    envKey: 'VITE_OPENROUTER_API_KEY_3',
+    model: 'mistralai/mistral-small-3.1-24b-instruct:free',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
     maxTokens: 4000,
     temperature: 0.7
   },
   openrouter8: {
-    name: 'OpenRouter - Devstral 2512',
-    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
-    model: 'mistralai/devstral-2512:free',
+    name: 'OpenRouter Key 4 - Mistral Small',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY_4'),
+    envKey: 'VITE_OPENROUTER_API_KEY_4',
+    model: 'mistralai/mistral-small-3.1-24b-instruct:free',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
     maxTokens: 4000,
     temperature: 0.7
   },
   openrouter9: {
-    name: 'OpenRouter - Trinity Mini',
-    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
-    model: 'arcee-ai/trinity-mini:free',
+    name: 'OpenRouter Key 1 - Hermes 3',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY'),
+    envKey: 'VITE_OPENROUTER_API_KEY',
+    model: 'nousresearch/hermes-3-llama-3.1-405b:free',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
     maxTokens: 4000,
     temperature: 0.7
   },
   openrouter10: {
-    name: 'OpenRouter - Llama 3.2 3B',
-    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
-    model: 'meta-llama/llama-3.2-3b-instruct:free',
+    name: 'OpenRouter Key 2 - Hermes 3',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY_2'),
+    envKey: 'VITE_OPENROUTER_API_KEY_2',
+    model: 'nousresearch/hermes-3-llama-3.1-405b:free',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
     maxTokens: 4000,
     temperature: 0.7
   },
   openrouter11: {
-    name: 'OpenRouter - Mistral 7B',
-    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
-    model: 'mistralai/mistral-7b-instruct:free',
+    name: 'OpenRouter Key 3 - Hermes 3',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY_3'),
+    envKey: 'VITE_OPENROUTER_API_KEY_3',
+    model: 'nousresearch/hermes-3-llama-3.1-405b:free',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
     maxTokens: 4000,
     temperature: 0.7
   },
   openrouter12: {
+    name: 'OpenRouter Key 4 - Hermes 3',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY_4'),
+    envKey: 'VITE_OPENROUTER_API_KEY_4',
+    model: 'nousresearch/hermes-3-llama-3.1-405b:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter13: {
+    name: 'OpenRouter Key 1 - Gemini 2.0',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY'),
+    envKey: 'VITE_OPENROUTER_API_KEY',
+    model: 'google/gemma-3-27b-it:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter14: {
+    name: 'OpenRouter - Qwen3 235B',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY'),
+    model: 'qwen/qwen3-235b-a22b:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter15: {
+    name: 'OpenRouter - DeepSeek V3.1',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY'),
+    model: 'nex-agi/deepseek-v3.1-nex-n1:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter16: {
+    name: 'OpenRouter - Devstral 2512',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY'),
+    model: 'mistralai/devstral-2512:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter17: {
+    name: 'OpenRouter - Trinity Mini',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY'),
+    model: 'arcee-ai/trinity-mini:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter18: {
+    name: 'OpenRouter - Llama 3.2 3B',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY'),
+    model: 'meta-llama/llama-3.2-3b-instruct:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter19: {
+    name: 'OpenRouter - Mistral 7B',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY'),
+    model: 'mistralai/mistral-7b-instruct:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    maxTokens: 4000,
+    temperature: 0.7
+  },
+  openrouter20: {
     name: 'OpenRouter - Gemma 3 12B',
-    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY || '',
+    apiKey: getEnv('VITE_OPENROUTER_API_KEY'),
     model: 'google/gemma-3-12b-it:free',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
     maxTokens: 4000,
@@ -183,14 +330,16 @@ export const AI_PROVIDERS: Record<string, AIProvider> = {
 };
 
 // Default provider - prioritize free OpenRouter models
-export const DEFAULT_PROVIDER = 'openrouter'; // Start with first OpenRouter model
+export const DEFAULT_PROVIDER = 'openrouter';
 
 // Provider rotation for avoiding rate limits
 let currentProviderIndex = 0;
 const OPENROUTER_PROVIDERS = [
-  'openrouter', 'openrouter2', 'openrouter3', 'openrouter4', 
+  'openrouter', 'openrouter2', 'openrouter3', 'openrouter4',
   'openrouter5', 'openrouter6', 'openrouter7', 'openrouter8',
-  'openrouter9', 'openrouter10', 'openrouter11', 'openrouter12'
+  'openrouter9', 'openrouter10', 'openrouter11', 'openrouter12',
+  'openrouter13', 'openrouter14', 'openrouter15', 'openrouter16',
+  'openrouter17', 'openrouter18', 'openrouter19', 'openrouter20'
 ];
 
 /**
@@ -208,34 +357,53 @@ export const getNextOpenRouterProvider = (): string => {
  */
 export const getAvailableProvider = (): AIProvider | null => {
   // PRIORITY ORDER: Use working providers first
-  // Google Gemini API key is BLOCKED (leaked)
-  // OpenRouter models exhausted
-  // Use: Groq, AIML, Chute which have quota
-  
   const priorityOrder = [
-    'groq',    // Groq - fast and free, PRIORITY
-    'aiml',    // AIML API - has quota
-    'chute',   // Chute AI - backup
-    'openrouter8', 'openrouter9', 'openrouter10', 'openrouter11', 'openrouter12', // Try newer OpenRouter models
-    'openrouter', 'openrouter2', 'openrouter3', 'openrouter4', 'openrouter5', 'openrouter6', 'openrouter7'
+    // 1. CONFIRMED VALID KEYS (Top Priority)
+    'openai', 'google', 'groq',
+
+    // 2. OpenRouter (Secondary)
+    'openrouter', 'openrouter2', 'openrouter3', 'openrouter4',
+    'openrouter5', 'openrouter6', 'openrouter7', 'openrouter8',
+    'openrouter9', 'openrouter10', 'openrouter11', 'openrouter12',
+    'openrouter13', 'openrouter14', 'openrouter15', 'openrouter16',
+    'openrouter17', 'openrouter18', 'openrouter19', 'openrouter20',
+
+    // 3. Others (Failed/Unknown - Kept as backup)
+    'chute', 'chute2',
+    'zai', 'zai2',
+    'aiml', 'aiml2', 'aiml3'
   ];
-  
+
   for (const key of priorityOrder) {
     const provider = AI_PROVIDERS[key];
-    if (provider && provider.apiKey && provider.apiKey !== '' && provider.apiKey !== 'YOUR_API_KEY_HERE') {
-      console.log(`✅ Using AI provider: ${provider.name} (${provider.model || 'default'})`);
-      return provider;
+    if (provider) {
+      // Dynamic Refresh from localStorage
+      if (provider.envKey) {
+        const dynamicKey = getEnv(provider.envKey);
+        if (dynamicKey) provider.apiKey = dynamicKey;
+      }
+
+      if (provider.apiKey && provider.apiKey !== '' && provider.apiKey !== 'YOUR_API_KEY_HERE') {
+        console.log(`✅ Using AI provider: ${provider.name} (${provider.model || 'default'})`);
+        return provider;
+      }
     }
   }
-  
+
   // Last resort: try any available provider
   for (const [, provider] of Object.entries(AI_PROVIDERS)) {
+    // Dynamic Refresh from localStorage
+    if (provider.envKey) {
+      const dynamicKey = getEnv(provider.envKey);
+      if (dynamicKey) provider.apiKey = dynamicKey;
+    }
+
     if (provider.apiKey && provider.apiKey !== '' && provider.apiKey !== 'YOUR_API_KEY_HERE') {
       console.log(`✅ Using any available AI provider: ${provider.name}`);
       return provider;
     }
   }
-  
+
   console.error('❌ No AI provider available with valid API key');
   return null;
 };
@@ -254,13 +422,12 @@ export const getProviderByName = (providerName: string): AIProvider | null => {
 
 /**
  * Get next available provider when current one fails
- * This ensures we always have a backup when hitting rate limits
  */
 export const getNextAvailableProvider = (failedProvider?: string): AIProvider | null => {
   // If an OpenRouter provider failed, try the next one in rotation
   if (failedProvider && failedProvider.startsWith('openrouter')) {
     console.log(`🔄 OpenRouter provider ${failedProvider} failed, trying next in rotation...`);
-    
+
     // Try next few OpenRouter providers
     for (let i = 0; i < OPENROUTER_PROVIDERS.length; i++) {
       const nextProvider = getNextOpenRouterProvider();
@@ -273,20 +440,20 @@ export const getNextAvailableProvider = (failedProvider?: string): AIProvider | 
       }
     }
   }
-  
+
   // Fallback to non-OpenRouter providers
-  const fallbackOrder = ['groq', 'aiml', 'chute', 'google', 'openai'];
-  
+  const fallbackOrder = ['chute', 'chute2', 'zai', 'zai2', 'aiml', 'aiml2', 'aiml3', 'groq', 'google', 'openai'];
+
   for (const key of fallbackOrder) {
     if (key === failedProvider) continue; // Skip the failed provider
-    
+
     const provider = AI_PROVIDERS[key];
     if (provider && provider.apiKey && provider.apiKey !== '' && provider.apiKey !== 'YOUR_API_KEY_HERE') {
       console.log(`✅ Using fallback AI provider: ${provider.name}`);
       return provider;
     }
   }
-  
+
   console.error('❌ No alternative AI provider available');
   return null;
 };
@@ -310,6 +477,14 @@ export function formatRequest(provider: string, prompt: string): any {
     case 'openrouter10':
     case 'openrouter11':
     case 'openrouter12':
+    case 'openrouter13':
+    case 'openrouter14':
+    case 'openrouter15':
+    case 'openrouter16':
+    case 'openrouter17':
+    case 'openrouter18':
+    case 'openrouter19':
+    case 'openrouter20':
       // OpenAI-compatible format
       return {
         model: AI_PROVIDERS[provider].model,
@@ -326,14 +501,14 @@ export function formatRequest(provider: string, prompt: string): any {
         max_tokens: AI_PROVIDERS[provider].maxTokens,
         temperature: AI_PROVIDERS[provider].temperature
       };
-    
+
     case 'anthropic':
       return {
         model: AI_PROVIDERS.anthropic.model,
         max_tokens: AI_PROVIDERS.anthropic.maxTokens,
         messages: [{ role: 'user', content: prompt }]
       };
-    
+
     case 'google':
       return {
         contents: [{ parts: [{ text: prompt }] }],
@@ -342,7 +517,7 @@ export function formatRequest(provider: string, prompt: string): any {
           maxOutputTokens: AI_PROVIDERS.google.maxTokens
         }
       };
-    
+
     case 'grok':
       return {
         model: AI_PROVIDERS.grok.model,
@@ -350,7 +525,7 @@ export function formatRequest(provider: string, prompt: string): any {
         max_tokens: AI_PROVIDERS.grok.maxTokens,
         temperature: AI_PROVIDERS.grok.temperature
       };
-    
+
     case 'qubrid':
       return {
         model: AI_PROVIDERS.qubrid?.model || 'default',
@@ -359,7 +534,7 @@ export function formatRequest(provider: string, prompt: string): any {
         max_tokens: AI_PROVIDERS.qubrid?.maxTokens || 4000,
         top_p: 0.9
       };
-    
+
     default:
       throw new Error(`Unsupported provider: ${provider}`);
   }
@@ -384,6 +559,14 @@ export function parseResponse(provider: string, response: any): AIResponse {
     case 'openrouter10':
     case 'openrouter11':
     case 'openrouter12':
+    case 'openrouter13':
+    case 'openrouter14':
+    case 'openrouter15':
+    case 'openrouter16':
+    case 'openrouter17':
+    case 'openrouter18':
+    case 'openrouter19':
+    case 'openrouter20':
       // OpenAI-compatible response format
       return {
         content: response.choices[0]?.message?.content || '',
@@ -393,7 +576,7 @@ export function parseResponse(provider: string, response: any): AIResponse {
           totalTokens: response.usage.total_tokens
         } : undefined
       };
-    
+
     case 'anthropic':
       return {
         content: response.content[0]?.text || '',
@@ -403,7 +586,7 @@ export function parseResponse(provider: string, response: any): AIResponse {
           totalTokens: response.usage.input_tokens + response.usage.output_tokens
         } : undefined
       };
-    
+
     case 'google':
       return {
         content: response.candidates[0]?.content?.parts[0]?.text || '',
@@ -413,7 +596,7 @@ export function parseResponse(provider: string, response: any): AIResponse {
           totalTokens: response.usageMetadata.totalTokenCount
         } : undefined
       };
-    
+
     case 'grok':
       return {
         content: response.choices[0]?.message?.content || '',
@@ -423,7 +606,7 @@ export function parseResponse(provider: string, response: any): AIResponse {
           totalTokens: response.usage.total_tokens
         } : undefined
       };
-    
+
     case 'qubrid':
       return {
         content: response.choices?.[0]?.message?.content || response.content || '',
@@ -433,7 +616,7 @@ export function parseResponse(provider: string, response: any): AIResponse {
           totalTokens: response.usage.total_tokens || 0
         } : undefined
       };
-    
+
     default:
       throw new Error(`Unsupported provider: ${provider}`);
   }
@@ -442,7 +625,7 @@ export function parseResponse(provider: string, response: any): AIResponse {
 // Error handling for different providers
 export function handleProviderError(provider: string, error: any): Error {
   const errorMessage = error?.error?.message || error?.message || 'Unknown error occurred';
-  
+
   // Handle OpenRouter providers (all use same error handling)
   if (provider.startsWith('openrouter')) {
     if (error?.error?.code === 'invalid_api_key') {
@@ -455,7 +638,7 @@ export function handleProviderError(provider: string, error: any): Error {
       return new Error(`OpenRouter model ${AI_PROVIDERS[provider]?.model} not available. Trying next model...`);
     }
   }
-  
+
   switch (provider) {
     case 'openai':
       if (error?.error?.code === 'insufficient_quota') {
@@ -465,19 +648,19 @@ export function handleProviderError(provider: string, error: any): Error {
         return new Error('Invalid OpenAI API key. Please check your configuration.');
       }
       break;
-    
+
     case 'anthropic':
       if (error?.error?.type === 'authentication_error') {
         return new Error('Invalid Anthropic API key. Please check your configuration.');
       }
       break;
-    
+
     case 'google':
       if (error?.error?.status === 'PERMISSION_DENIED') {
         return new Error('Invalid Google AI API key. Please check your configuration.');
       }
       break;
-    
+
     case 'grok':
       if (error?.error?.code === 'invalid_api_key') {
         return new Error('Invalid Grok API key. Please check your configuration.');
@@ -486,7 +669,7 @@ export function handleProviderError(provider: string, error: any): Error {
         return new Error('Grok API quota exceeded. Please check your billing.');
       }
       break;
-    
+
     case 'qubrid':
       if (error?.error?.code === 'invalid_api_key') {
         return new Error('Invalid Qubrid API key. Please check your configuration.');
@@ -496,7 +679,7 @@ export function handleProviderError(provider: string, error: any): Error {
       }
       break;
   }
-  
+
   return new Error(`${AI_PROVIDERS[provider]?.name || 'AI'} API Error: ${errorMessage}`);
 }
 
@@ -521,10 +704,10 @@ export function shouldRetry(_provider: string, error: any): boolean {
     'connection_error',
     'temporary_error'
   ];
-  
+
   const errorCode = error?.error?.code || error?.error?.type;
-  return retryableErrors.includes(errorCode) || 
-         (error?.status >= 500 && error?.status < 600);
+  return retryableErrors.includes(errorCode) ||
+    (error?.status >= 500 && error?.status < 600);
 }
 
 export function getRetryDelay(attemptNumber: number): number {

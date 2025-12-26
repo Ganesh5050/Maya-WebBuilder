@@ -18,7 +18,11 @@ export interface DeploymentStatus {
 
 export class VercelDeploymentService {
   private readonly VERCEL_API_URL = 'https://api.vercel.com';
-  private readonly VERCEL_TOKEN = import.meta.env.VITE_VERCEL_TOKEN || '';
+
+
+  private getToken(): string {
+    return import.meta.env.VITE_VERCEL_TOKEN || localStorage.getItem('VERCEL_TOKEN') || '';
+  }
 
   /**
    * Deploy a React project to Vercel
@@ -28,30 +32,32 @@ export class VercelDeploymentService {
     projectName: string,
     onProgress?: (message: string) => void
   ): Promise<DeploymentResult> {
-    
-    if (!this.VERCEL_TOKEN) {
+
+    const token = this.getToken();
+
+    if (!token) {
       return {
         success: false,
-        error: 'Vercel token not configured. Please add REACT_APP_VERCEL_TOKEN to your environment variables.'
+        error: 'Vercel token not configured. Please add VITE_VERCEL_TOKEN to env or set it in Settings > Secrets.'
       };
     }
 
     try {
       onProgress?.('🚀 Preparing deployment...');
-      
+
       // Step 1: Create deployment payload
       const files = this.prepareFiles(projectFiles);
-      
+
       onProgress?.('📦 Uploading files to Vercel...');
-      
+
       // Step 2: Create deployment
       const deployment = await this.createDeployment(projectName, files);
-      
+
       onProgress?.('🔨 Building project...');
-      
+
       // Step 3: Wait for deployment to complete
       const finalStatus = await this.waitForDeployment(deployment.id, onProgress);
-      
+
       if (finalStatus.status === 'READY') {
         onProgress?.('✅ Deployment successful!');
         return {
@@ -66,7 +72,7 @@ export class VercelDeploymentService {
           deploymentId: deployment.id
         };
       }
-      
+
     } catch (error) {
       console.error('❌ Deployment error:', error);
       return {
@@ -79,28 +85,22 @@ export class VercelDeploymentService {
   /**
    * Prepare files for Vercel deployment
    */
-  private prepareFiles(projectFiles: Array<{ path: string; content: string }>): Record<string, { file: string }> {
-    const files: Record<string, { file: string }> = {};
-    
-    projectFiles.forEach(file => {
-      // Convert file content to base64
-      const base64Content = btoa(unescape(encodeURIComponent(file.content)));
-      files[file.path] = {
-        file: base64Content
-      };
-    });
-    
-    return files;
+  private prepareFiles(projectFiles: Array<{ path: string; content: string }>): Array<{ file: string; data: string; encoding: string }> {
+    return projectFiles.map(file => ({
+      file: file.path,
+      data: btoa(unescape(encodeURIComponent(file.content))),
+      encoding: 'base64'
+    }));
   }
 
   /**
    * Create deployment on Vercel
    */
-  private async createDeployment(projectName: string, files: Record<string, { file: string }>) {
+  private async createDeployment(projectName: string, files: Array<{ file: string; data: string; encoding: string }>) {
     const response = await fetch(`${this.VERCEL_API_URL}/v13/deployments`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.VERCEL_TOKEN}`,
+        'Authorization': `Bearer ${this.getToken()}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -128,18 +128,18 @@ export class VercelDeploymentService {
    * Wait for deployment to complete
    */
   private async waitForDeployment(
-    deploymentId: string, 
+    deploymentId: string,
     onProgress?: (message: string) => void
   ): Promise<DeploymentStatus> {
-    
+
     const maxAttempts = 60; // 5 minutes max
     let attempts = 0;
-    
+
     while (attempts < maxAttempts) {
       try {
         const response = await fetch(`${this.VERCEL_API_URL}/v13/deployments/${deploymentId}`, {
           headers: {
-            'Authorization': `Bearer ${this.VERCEL_TOKEN}`
+            'Authorization': `Bearer ${this.getToken()}`
           }
         });
 
@@ -148,7 +148,7 @@ export class VercelDeploymentService {
         }
 
         const deployment = await response.json();
-        
+
         switch (deployment.readyState) {
           case 'BUILDING':
             onProgress?.(`🔨 Building... (${attempts * 5}s)`);
@@ -173,18 +173,18 @@ export class VercelDeploymentService {
               createdAt: deployment.createdAt
             };
         }
-        
+
         // Wait 5 seconds before next check
         await new Promise(resolve => setTimeout(resolve, 5000));
         attempts++;
-        
+
       } catch (error) {
         console.error('Error checking deployment status:', error);
         attempts++;
         await new Promise(resolve => setTimeout(resolve, 5000));
       }
     }
-    
+
     // Timeout
     return {
       status: 'ERROR',
@@ -200,7 +200,7 @@ export class VercelDeploymentService {
     try {
       const response = await fetch(`${this.VERCEL_API_URL}/v13/deployments/${deploymentId}`, {
         headers: {
-          'Authorization': `Bearer ${this.VERCEL_TOKEN}`
+          'Authorization': `Bearer ${this.getToken()}`
         }
       });
 
@@ -209,14 +209,14 @@ export class VercelDeploymentService {
       }
 
       const deployment = await response.json();
-      
+
       return {
         status: deployment.readyState,
         url: deployment.readyState === 'READY' ? `https://${deployment.url}` : undefined,
         deploymentId,
         createdAt: deployment.createdAt
       };
-      
+
     } catch (error) {
       console.error('Error getting deployment status:', error);
       return null;
@@ -230,7 +230,7 @@ export class VercelDeploymentService {
     try {
       const response = await fetch(`${this.VERCEL_API_URL}/v6/deployments`, {
         headers: {
-          'Authorization': `Bearer ${this.VERCEL_TOKEN}`
+          'Authorization': `Bearer ${this.getToken()}`
         }
       });
 
@@ -239,14 +239,14 @@ export class VercelDeploymentService {
       }
 
       const data = await response.json();
-      
+
       return data.deployments.map((deployment: any) => ({
         status: deployment.readyState,
         url: deployment.readyState === 'READY' ? `https://${deployment.url}` : undefined,
         deploymentId: deployment.uid,
         createdAt: deployment.createdAt
       }));
-      
+
     } catch (error) {
       console.error('Error listing deployments:', error);
       return [];
@@ -264,14 +264,14 @@ export const vercelDeploymentService = {
     }
     return _vercelDeploymentService;
   },
-  
+
   // Proxy methods to the instance
-  deployProject: (...args: Parameters<VercelDeploymentService['deployProject']>) => 
+  deployProject: (...args: Parameters<VercelDeploymentService['deployProject']>) =>
     vercelDeploymentService.instance.deployProject(...args),
-  
-  getDeploymentStatus: (...args: Parameters<VercelDeploymentService['getDeploymentStatus']>) => 
+
+  getDeploymentStatus: (...args: Parameters<VercelDeploymentService['getDeploymentStatus']>) =>
     vercelDeploymentService.instance.getDeploymentStatus(...args),
-    
-  listDeployments: (...args: Parameters<VercelDeploymentService['listDeployments']>) => 
+
+  listDeployments: (...args: Parameters<VercelDeploymentService['listDeployments']>) =>
     vercelDeploymentService.instance.listDeployments(...args)
 };
